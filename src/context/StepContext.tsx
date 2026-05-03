@@ -7,43 +7,58 @@ import { db, auth } from '../config/firebase';
 interface StepContextData {
   currentSteps: number;
   currentCalories: number;
+  currentDistance: number;
   syncStepsToFirestore: (steps: number) => Promise<void>;
 }
 
 const StepContext = createContext<StepContextData>({
   currentSteps: 0,
   currentCalories: 0,
+  currentDistance: 0,
   syncStepsToFirestore: async () => {}
 });
 
 export function StepProvider({ children }: { children: React.ReactNode }) {
   const [currentSteps, setCurrentSteps] = useState(0);
   const [currentCalories, setCurrentCalories] = useState(0);
+  const [currentDistance, setCurrentDistance] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  const stepsRef = useRef(0);
   const lastSyncedSteps = useRef(0);
   const initialStepsLoaded = useRef(0);
 
   const CALORIES_PER_STEP = 0.045;
+  const DISTANCE_PER_STEP = 0.000762; // 0.762 meters per step in km
 
-  // Sync calories whenever steps update
+  // Keep ref in sync for AppState listener
+  useEffect(() => {
+    stepsRef.current = currentSteps;
+  }, [currentSteps]);
+
+  // Sync calories and distance whenever steps update
   useEffect(() => {
     setCurrentCalories(parseFloat((currentSteps * CALORIES_PER_STEP).toFixed(2)));
+    setCurrentDistance(parseFloat((currentSteps * DISTANCE_PER_STEP).toFixed(2)));
   }, [currentSteps]);
 
   // Sync to Firestore on app state change (e.g. background/close)
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState.match(/inactive|background/)) {
-        console.log("[Pedometer Debug] App going to background. Performing final sync...");
-        syncStepsToFirestore(currentSteps);
+        console.log("[Pedometer Debug] App going to background. Performing final sync with steps:", stepsRef.current);
+        if (isLoaded && stepsRef.current >= lastSyncedSteps.current) {
+          syncStepsToFirestore(stepsRef.current);
+        }
       }
     });
 
     return () => {
       subscription.remove();
     };
-  }, [currentSteps]);
+  }, [isLoaded]);
 
-  // Load initial steps from Firestore on mount
+  // Load initial steps from Firestore on mount OR when user changes
   useEffect(() => {
     const fetchInitialSteps = async () => {
       const userId = auth.currentUser?.uid || 'test_user_123';
@@ -52,22 +67,27 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data.steps) {
+          if (data.steps !== undefined) {
             console.log("[Pedometer Debug] Loaded initial steps from Firestore:", data.steps);
             setCurrentSteps(data.steps);
+            stepsRef.current = data.steps;
             lastSyncedSteps.current = data.steps;
             initialStepsLoaded.current = data.steps;
           }
         }
       } catch (error) {
         console.error("Error fetching initial steps:", error);
+      } finally {
+        setIsLoaded(true);
       }
     };
 
     fetchInitialSteps();
-  }, []);
+  }, [auth.currentUser?.uid]);
 
   useEffect(() => {
+    if (!isLoaded) return;
+
     let subscription: any = null;
 
     const subscribeToPedometer = async () => {
@@ -138,16 +158,17 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (subscription) subscription.remove();
     };
-  }, []);
+  }, [isLoaded]);
 
   const syncStepsToFirestore = async (steps: number) => {
     const userId = auth.currentUser?.uid || 'test_user_123';
     if (userId) {
       try {
         const calories = parseFloat((steps * CALORIES_PER_STEP).toFixed(2));
+        const distance = parseFloat((steps * DISTANCE_PER_STEP).toFixed(2));
         const docRef = doc(db, 'users', userId, 'weeklySummary', 'currentWeek');
-        await setDoc(docRef, { steps, calories }, { merge: true });
-        console.log("Steps and calories synced to Firestore:", steps, calories);
+        await setDoc(docRef, { steps, calories, distance }, { merge: true });
+        console.log("Steps, calories and distance synced to Firestore:", steps, calories, distance);
       } catch (error) {
         console.error("Error syncing steps: ", error);
       }
@@ -155,7 +176,7 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <StepContext.Provider value={{ currentSteps, currentCalories, syncStepsToFirestore }}>
+    <StepContext.Provider value={{ currentSteps, currentCalories, currentDistance, syncStepsToFirestore }}>
       {children}
     </StepContext.Provider>
   );
