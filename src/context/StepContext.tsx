@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Pedometer, Accelerometer } from 'expo-sensors';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
 interface StepContextData {
@@ -17,6 +17,7 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   const [currentSteps, setCurrentSteps] = useState(0);
   const [currentCalories, setCurrentCalories] = useState(0);
   const lastSyncedSteps = useRef(0);
+  const initialStepsLoaded = useRef(0);
 
   const CALORIES_PER_STEP = 0.045;
 
@@ -24,6 +25,30 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setCurrentCalories(parseFloat((currentSteps * CALORIES_PER_STEP).toFixed(2)));
   }, [currentSteps]);
+
+  // Load initial steps from Firestore on mount
+  useEffect(() => {
+    const fetchInitialSteps = async () => {
+      const userId = auth.currentUser?.uid || 'test_user_123';
+      try {
+        const docRef = doc(db, 'users', userId, 'weeklySummary', 'currentWeek');
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.steps) {
+            console.log("[Pedometer Debug] Loaded initial steps from Firestore:", data.steps);
+            setCurrentSteps(data.steps);
+            lastSyncedSteps.current = data.steps;
+            initialStepsLoaded.current = data.steps;
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching initial steps:", error);
+      }
+    };
+
+    fetchInitialSteps();
+  }, []);
 
   useEffect(() => {
     let subscription: any = null;
@@ -79,12 +104,13 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
       } else {
         console.log("Pedometer is available and permission granted. Starting to watch step count...");
         subscription = Pedometer.watchStepCount((result) => {
-          console.log(`[Pedometer Debug] Steps counted: ${result.steps}`);
-          setCurrentSteps(result.steps);
+          const totalSteps = initialStepsLoaded.current + result.steps;
+          console.log(`[Pedometer Debug] Native steps: ${result.steps}, Total: ${totalSteps}`);
+          setCurrentSteps(totalSteps);
 
-          if (result.steps - lastSyncedSteps.current >= 10) {
-            syncStepsToFirestore(result.steps);
-            lastSyncedSteps.current = result.steps;
+          if (totalSteps - lastSyncedSteps.current >= 10) {
+            syncStepsToFirestore(totalSteps);
+            lastSyncedSteps.current = totalSteps;
           }
         });
       }

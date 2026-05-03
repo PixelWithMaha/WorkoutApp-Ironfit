@@ -134,7 +134,9 @@ export default function HomeScreen() {
         {/* Suggested Workouts Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Suggested Workouts</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>see all</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('AllWorkouts')}>
+            <Text style={styles.seeAll}>see all</Text>
+          </TouchableOpacity>
         </View>
 
         {workouts.map((workout: any) => (
@@ -143,6 +145,7 @@ export default function HomeScreen() {
             title={workout.title}
             desc={workout.desc}
             isLight={workout.isLight}
+            onPress={() => navigation.navigate('WorkoutDetail', { workout })}
           />
         ))}
 
