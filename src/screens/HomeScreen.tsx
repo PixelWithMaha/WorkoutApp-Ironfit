@@ -7,6 +7,7 @@ import { styles, PRIMARY_COLOR } from '../styles/homeStyles';
 import MetricCard from '../components/MetricCard';
 import WorkoutCard from '../components/WorkoutCard';
 import { useStepContext } from '../context/StepContext';
+import { useNavigation } from '@react-navigation/native';
 
 const defaultHealthData = [
   { month: 'Jan', value: 40 }, { month: 'Feb', value: 60 }, { month: 'Mar', value: 35 },
@@ -19,7 +20,8 @@ export default function HomeScreen() {
   const [userData, setUserData] = useState<any>(null);
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { currentSteps } = useStepContext();
+  const navigation = useNavigation<any>();
+  const { currentSteps, currentCalories } = useStepContext();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,7 +34,6 @@ export default function HomeScreen() {
             setUserData(userDocSnap.data());
           }
         } else {
-          // Fallback or demo data if not logged in
           setUserData({
             name: 'Sarah',
             metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
@@ -97,7 +98,7 @@ export default function HomeScreen() {
           <View style={styles.chartHeader}>
             <View style={styles.chartTitleContainer}>
               <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={20} color={PRIMARY_COLOR} />
-              <Text style={styles.chartTitle}>Healtnes</Text>
+              <Text style={styles.chartTitle}>Health Status</Text>
             </View>
             <TouchableOpacity style={styles.dropdown}>
               <Text style={styles.dropdownText}>Monthly</Text>
@@ -120,11 +121,13 @@ export default function HomeScreen() {
         {/* Metrics Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Your Metrics</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>see all</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Progress')}>
+            <Text style={styles.seeAll}>see all</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.metricsGrid}>
           <MetricCard label="Water" value={metrics.water} unit="Liters" icon="water" color="#2196F3" />
-          <MetricCard label="Calories" value={metrics.calories} unit="Cal" icon="flame" color="#FFC107" />
+          <MetricCard label="Calories" value={currentCalories || metrics.calories} unit="Cal" icon="flame" color="#FFC107" />
           <MetricCard label="Heart Rate" value={metrics.heartRate} unit="Bpm" icon="heart" color="#7E57C2" />
         </View>
 
