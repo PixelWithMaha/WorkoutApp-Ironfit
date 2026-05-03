@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { Feather, Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { ProgressChart } from 'react-native-chart-kit';
+import { LineChart, ProgressChart } from 'react-native-chart-kit';
 import { colors } from '../theme/colors';
 import { useStepContext } from '../context/StepContext';
+import { Modal, ActivityIndicator } from 'react-native';
+import { useHistory } from '../hooks/useHistory';
 
 const { width } = Dimensions.get('window');
 
@@ -13,7 +15,28 @@ const progressData = {
 };
 
 export default function ProgressScreen() {
-  const { currentSteps } = useStepContext();
+  const { currentSteps, currentCalories, currentDistance } = useStepContext();
+  const { weeklyData, loading: historyLoading } = useHistory();
+  const [summaryVisible, setSummaryVisible] = React.useState(false);
+
+  // Calculate goal progress (default 10k steps)
+  const stepGoal = 10000;
+  const progressPercent = Math.min((currentSteps / stepGoal), 1);
+  const displayPercent = Math.round(progressPercent * 100);
+
+  const progressData = {
+    labels: ["Goal"],
+    data: [progressPercent]
+  };
+
+  // Prepare chart data from weekly history
+  const chartData = {
+    labels: weeklyData.length > 0 ? weeklyData.map(d => d.weekLabel.split(' ')[0]) : ["W1", "W2", "W3", "W4"],
+    datasets: [{
+      data: weeklyData.length > 0 ? weeklyData.map(d => d.distance) : [5, 8, 7, 12]
+    }]
+  };
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -28,10 +51,10 @@ export default function ProgressScreen() {
         </View>
 
         {/* Stay Active Card */}
-        <View style={styles.stayActiveCard}>
-          <Text style={styles.stayActiveTitle}>Stay Active!</Text>
-          <Text style={styles.stayActiveDesc}>See your steps and progress{'\n'}this week.</Text>
-          <TouchableOpacity style={styles.viewSummaryButton}>
+        <View style={[styles.stayActiveCard, { backgroundColor: colors.primaryLight }]}>
+          <Text style={[styles.stayActiveTitle, { color: colors.white }]}>Stay Active!</Text>
+          <Text style={[styles.stayActiveDesc, { color: 'rgba(255,255,255,0.7)' }]}>See your steps and progress{'\n'}this week.</Text>
+          <TouchableOpacity style={styles.viewSummaryButton} onPress={() => setSummaryVisible(true)}>
             <Text style={styles.viewSummaryText}>View Summary</Text>
             <View style={styles.summaryIconCircle}>
               <Feather name="arrow-up-right" size={16} color={colors.white} />
@@ -39,10 +62,9 @@ export default function ProgressScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Summary Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>This Week's Summary</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>see all</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setSummaryVisible(true)}><Text style={styles.seeAll}>see more</Text></TouchableOpacity>
         </View>
 
         <View style={styles.summaryGrid}>
@@ -69,43 +91,139 @@ export default function ProgressScreen() {
             </View>
             <View style={styles.summaryCardBody}>
               <View>
-                <Text style={styles.summaryCardValue}>2.9</Text>
+                <Text style={styles.summaryCardValue}>{currentCalories}</Text>
                 <Text style={styles.summaryCardUnit}>Kcal</Text>
               </View>
               <Ionicons name="flame" size={24} color={colors.calories} />
             </View>
           </View>
 
-          {/* Heart Rate */}
+          {/* Distance */}
           <View style={styles.summaryCard}>
             <View style={styles.summaryCardHeader}>
-              <Text style={styles.summaryCardTitle}>Heart Rate</Text>
+              <Text style={styles.summaryCardTitle}>Distance</Text>
               <Feather name="more-horizontal" size={16} color={colors.textSecondary} />
             </View>
             <View style={styles.summaryCardBody}>
               <View>
-                <Text style={styles.summaryCardValue}>76</Text>
-                <Text style={styles.summaryCardUnit}>Bpm</Text>
+                <Text style={styles.summaryCardValue}>{currentDistance}</Text>
+                <Text style={styles.summaryCardUnit}>Km</Text>
               </View>
-              <Ionicons name="heart" size={24} color={colors.heart} />
+              <Ionicons name="location" size={24} color={colors.water} />
             </View>
           </View>
 
           {/* Workout */}
           <View style={styles.summaryCard}>
             <View style={styles.summaryCardHeader}>
-              <Text style={styles.summaryCardTitle}>Workout</Text>
+              <Text style={styles.summaryCardTitle}>Intensity</Text>
               <Feather name="more-horizontal" size={16} color={colors.textSecondary} />
             </View>
             <View style={styles.summaryCardBody}>
               <View>
-                <Text style={styles.summaryCardValue}>3h 20m</Text>
-                <Text style={styles.summaryCardUnit}>Steady</Text>
+                <Text style={styles.summaryCardValue}>{currentSteps > 5000 ? 'High' : 'Low'}</Text>
+                <Text style={styles.summaryCardUnit}>Active</Text>
               </View>
-              <Ionicons name="time" size={24} color="#34C759" />
+              <Ionicons name="stats-chart" size={24} color="#34C759" />
             </View>
           </View>
         </View>
+
+        {/* Summary Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={summaryVisible}
+          onRequestClose={() => setSummaryVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Weekly Summary</Text>
+                <TouchableOpacity onPress={() => setSummaryVisible(false)}>
+                  <Feather name="x" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                <Text style={styles.chartLabel}>Distance Trends (Last 4 Weeks)</Text>
+                {historyLoading ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <LineChart
+                    data={chartData}
+                    width={width - 64}
+                    height={200}
+                    chartConfig={{
+                      backgroundColor: colors.white,
+                      backgroundGradientFrom: colors.white,
+                      backgroundGradientTo: colors.white,
+                      decimalPlaces: 1,
+                      color: (opacity = 1) => `rgba(18, 1, 92, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(142, 142, 147, ${opacity})`,
+                      style: { borderRadius: 16 },
+                      propsForDots: { r: "5", strokeWidth: "2", stroke: colors.primary }
+                    }}
+                    bezier
+                    style={{ marginVertical: 8, borderRadius: 16, alignSelf: 'center' }}
+                  />
+                )}
+
+                <Text style={[styles.chartLabel, { marginTop: 20 }]}>Metrics Overview</Text>
+                <View style={styles.modalMetricsGrid}>
+                  <View style={styles.modalMetricItem}>
+                    <Ionicons name="footsteps" size={24} color={colors.primary} />
+                    <View style={styles.modalMetricText}>
+                      <Text style={styles.modalMetricLabel}>Total Steps</Text>
+                      <Text style={styles.modalMetricValue}>{currentSteps}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.modalMetricItem}>
+                    <Ionicons name="flame" size={24} color={colors.calories} />
+                    <View style={styles.modalMetricText}>
+                      <Text style={styles.modalMetricLabel}>Total Calories</Text>
+                      <Text style={styles.modalMetricValue}>{currentCalories} Kcal</Text>
+                    </View>
+                  </View>
+                  <View style={styles.modalMetricItem}>
+                    <Ionicons name="location" size={24} color={colors.water} />
+                    <View style={styles.modalMetricText}>
+                      <Text style={styles.modalMetricLabel}>Total Distance</Text>
+                      <Text style={styles.modalMetricValue}>{currentDistance} Km</Text>
+                    </View>
+                  </View>
+                  <View style={styles.modalMetricItem}>
+                    <Ionicons name="heart" size={24} color={colors.heart} />
+                    <View style={styles.modalMetricText}>
+                      <Text style={styles.modalMetricLabel}>Avg Heart Rate</Text>
+                      <Text style={styles.modalMetricValue}>76 Bpm</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.summaryStatsRow}>
+                  <View style={styles.statBox}>
+                    <Text style={styles.statLabel}>Avg Steps</Text>
+                    <Text style={styles.statValue}>5.4K</Text>
+                  </View>
+                  <View style={styles.statBox}>
+                    <Text style={styles.statLabel}>Avg Dist</Text>
+                    <Text style={styles.statValue}>4.2 Km</Text>
+                  </View>
+                  <View style={styles.statBox}>
+                    <Text style={styles.statLabel}>Active Days</Text>
+                    <Text style={styles.statValue}>5/7</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.closeButton} onPress={() => setSummaryVisible(false)}>
+                  <Text style={styles.closeButtonText}>Done</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
 
         {/* My Goal Section */}
         <Text style={styles.sectionTitle}>My Goal</Text>
@@ -120,18 +238,18 @@ export default function ProgressScreen() {
                 strokeWidth={16}
                 radius={50}
                 chartConfig={{
-                  backgroundColor: '#ffffff',
-                  backgroundGradientFrom: '#ffffff',
-                  backgroundGradientTo: '#ffffff',
-                  color: (opacity = 1) => `rgba(26, 11, 46, ${opacity})`,
+                  backgroundColor: colors.white,
+                  backgroundGradientFrom: colors.white,
+                  backgroundGradientTo: colors.white,
+                  color: (opacity = 1) => `rgba(18, 1, 92, ${opacity})`,
                 }}
                 hideLegend={true}
               />
               <View style={styles.progressRingLabelContainer}>
-                <Text style={styles.progressRingValue}>60%</Text>
+                <Text style={styles.progressRingValue}>{displayPercent}%</Text>
               </View>
             </View>
-            <Text style={styles.goalFooterDesc}>You're 60% closer to your goal.{'\n'}Keep pushing the finish line is...</Text>
+            <Text style={styles.goalFooterDesc}>You're {displayPercent}% closer to your goal.{'\n'}Keep pushing the finish line is...</Text>
           </View>
           <View style={styles.emptyCard} />
         </View>
@@ -323,5 +441,91 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
+    minHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  chartLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  modalMetricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  modalMetricItem: {
+    width: '48%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FB',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  modalMetricText: {
+    marginLeft: 12,
+  },
+  modalMetricLabel: {
+    fontSize: 10,
+    color: colors.textSecondary,
+  },
+  modalMetricValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  summaryStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  statBox: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  closeButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
