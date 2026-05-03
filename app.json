@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ironfit-app",
+    "name": "Wironfit-app",
     "slug": "ironfit-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,9 +13,16 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMotionUsageDescription": "This app uses the pedometer to track your daily steps."
+      }
     },
     "android": {
+      "package": "com.ironfit.app",
+      "permissions": [
+        "ACTIVITY_RECOGNITION"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
