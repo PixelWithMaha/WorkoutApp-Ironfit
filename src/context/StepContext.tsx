@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { Pedometer, Accelerometer } from 'expo-sensors';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
@@ -6,11 +7,13 @@ import { db, auth } from '../config/firebase';
 interface StepContextData {
   currentSteps: number;
   currentCalories: number;
+  syncStepsToFirestore: (steps: number) => Promise<void>;
 }
 
 const StepContext = createContext<StepContextData>({
   currentSteps: 0,
-  currentCalories: 0
+  currentCalories: 0,
+  syncStepsToFirestore: async () => {}
 });
 
 export function StepProvider({ children }: { children: React.ReactNode }) {
@@ -24,6 +27,20 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   // Sync calories whenever steps update
   useEffect(() => {
     setCurrentCalories(parseFloat((currentSteps * CALORIES_PER_STEP).toFixed(2)));
+  }, [currentSteps]);
+
+  // Sync to Firestore on app state change (e.g. background/close)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState.match(/inactive|background/)) {
+        console.log("[Pedometer Debug] App going to background. Performing final sync...");
+        syncStepsToFirestore(currentSteps);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, [currentSteps]);
 
   // Load initial steps from Firestore on mount
@@ -138,7 +155,7 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <StepContext.Provider value={{ currentSteps, currentCalories }}>
+    <StepContext.Provider value={{ currentSteps, currentCalories, syncStepsToFirestore }}>
       {children}
     </StepContext.Provider>
   );
