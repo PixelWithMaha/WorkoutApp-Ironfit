@@ -1,21 +1,30 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { Pedometer, Accelerometer } from 'expo-sensors';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
+import {
+  initialize,
+  requestPermission,
+  aggregateRecord,
+} from 'react-native-health-connect';
 
 interface StepContextData {
   currentSteps: number;
   currentCalories: number;
   currentDistance: number;
+  isHealthConnectActive: boolean;
   syncStepsToFirestore: (steps: number) => Promise<void>;
+  manualSync: () => Promise<void>;
 }
 
 const StepContext = createContext<StepContextData>({
   currentSteps: 0,
   currentCalories: 0,
   currentDistance: 0,
-  syncStepsToFirestore: async () => {}
+  isHealthConnectActive: false,
+  syncStepsToFirestore: async () => { },
+  manualSync: async () => { }
 });
 
 export function StepProvider({ children }: { children: React.ReactNode }) {
@@ -23,7 +32,8 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   const [currentCalories, setCurrentCalories] = useState(0);
   const [currentDistance, setCurrentDistance] = useState(0);
   const [isLoaded, setIsLoaded] = useState(false);
-  
+  const [isHealthConnectActive, setIsHealthConnectActive] = useState(false);
+
   const stepsRef = useRef(0);
   const lastSyncedSteps = useRef(0);
   const initialStepsLoaded = useRef(0);
@@ -31,34 +41,87 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   const CALORIES_PER_STEP = 0.045;
   const DISTANCE_PER_STEP = 0.000762; // 0.762 meters per step in km
 
-  // Keep ref in sync for AppState listener
+  // Keep ref in sync
   useEffect(() => {
     stepsRef.current = currentSteps;
   }, [currentSteps]);
 
-  // Sync calories and distance whenever steps update
+  // Sync calories and distance
   useEffect(() => {
     setCurrentCalories(parseFloat((currentSteps * CALORIES_PER_STEP).toFixed(2)));
     setCurrentDistance(parseFloat((currentSteps * DISTANCE_PER_STEP).toFixed(2)));
   }, [currentSteps]);
 
-  // Sync to Firestore on app state change (e.g. background/close)
+  // Sync to Firestore on app state change
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState.match(/inactive|background/)) {
-        console.log("[Pedometer Debug] App going to background. Performing final sync with steps:", stepsRef.current);
         if (isLoaded && stepsRef.current >= lastSyncedSteps.current) {
           syncStepsToFirestore(stepsRef.current);
         }
       }
     });
 
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [isLoaded]);
 
-  // Load initial steps from Firestore on mount OR when user changes
+  // Health Connect Sync Logic (Watch-First)
+  const syncWatchData = async () => {
+    if (Platform.OS !== 'android') return;
+
+    try {
+      const isInitialized = await initialize();
+      if (!isInitialized) return;
+
+      setTimeout(async () => {
+        try {
+          await requestPermission([{ accessType: 'read', recordType: 'Steps' }]);
+
+          const startOfDay = new Date();
+          startOfDay.setHours(0, 0, 0, 0);
+
+          const result = await aggregateRecord({
+            recordType: 'Steps',
+            timeRangeFilter: {
+              operator: 'between',
+              startTime: startOfDay.toISOString(),
+              endTime: new Date().toISOString(),
+            },
+          });
+
+          const totalWatchSteps = result?.COUNT_TOTAL || 0;
+          console.log(`[Health Connect] Syncing. Watch: ${totalWatchSteps}, Local: ${stepsRef.current}`);
+
+          if (totalWatchSteps > 0) {
+            setIsHealthConnectActive(true);
+
+            setCurrentSteps(totalWatchSteps);
+            if (totalWatchSteps !== lastSyncedSteps.current) {
+              syncStepsToFirestore(totalWatchSteps);
+              lastSyncedSteps.current = totalWatchSteps;
+            }
+          }
+        } catch (err) {
+          console.error("[Health Connect] Aggregate error:", err);
+        }
+      }, 500);
+    } catch (error) {
+      console.error("[Health Connect] Init error:", error);
+    }
+  };
+
+  const manualSync = async () => {
+    console.log("[StepContext] Manual sync triggered...");
+    await syncWatchData();
+  };
+
+  useEffect(() => {
+    if (!isLoaded || Platform.OS !== 'android') return;
+    syncWatchData();
+    const interval = setInterval(syncWatchData, 120000);
+    return () => clearInterval(interval);
+  }, [isLoaded]);
+
   useEffect(() => {
     const fetchInitialSteps = async () => {
       const userId = auth.currentUser?.uid || 'test_user_123';
@@ -68,7 +131,6 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.steps !== undefined) {
-            console.log("[Pedometer Debug] Loaded initial steps from Firestore:", data.steps);
             setCurrentSteps(data.steps);
             stepsRef.current = data.steps;
             lastSyncedSteps.current = data.steps;
@@ -81,36 +143,32 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
         setIsLoaded(true);
       }
     };
-
     fetchInitialSteps();
   }, [auth.currentUser?.uid]);
 
+
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || isHealthConnectActive) {
+      console.log("[StepContext] Internal sensors disabled (Health Connect is active).");
+      return;
+    }
 
     let subscription: any = null;
 
     const subscribeToPedometer = async () => {
       let useFallback = false;
       const isAvailable = await Pedometer.isAvailableAsync();
-      console.log('isAvailable', isAvailable)
+
       if (!isAvailable) {
-        console.log("[Pedometer Debug] Pedometer not available hardware-wise. Falling back.");
         useFallback = true;
       } else {
-        console.log("Permission check")
-        const permissions = await Pedometer.getPermissionsAsync();
-        console.log('permissions', permissions)
         const { status } = await Pedometer.requestPermissionsAsync();
-        console.log('status', status)
         if (status !== 'granted') {
-          console.log("[Pedometer Debug] Permission denied. Falling back to Accelerometer.");
           useFallback = true;
         }
       }
 
       if (useFallback) {
-        console.log("Starting Accelerometer fallback for step counting...");
         Accelerometer.setUpdateInterval(150);
         let lastMag = 0;
         let lastStepTime = 0;
@@ -126,8 +184,6 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
               lastStepTime = now;
               setCurrentSteps((prev) => {
                 const nextSteps = prev + 1;
-                console.log(`[Mock Pedometer] Steps: ${nextSteps}`);
-
                 if (nextSteps - lastSyncedSteps.current >= 50) {
                   syncStepsToFirestore(nextSteps);
                   lastSyncedSteps.current = nextSteps;
@@ -139,12 +195,9 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
           lastMag = magnitude;
         });
       } else {
-        console.log("Pedometer is available and permission granted. Starting to watch step count...");
         subscription = Pedometer.watchStepCount((result) => {
           const totalSteps = initialStepsLoaded.current + result.steps;
-          console.log(`[Pedometer Debug] Native steps: ${result.steps}, Total: ${totalSteps}`);
           setCurrentSteps(totalSteps);
-
           if (totalSteps - lastSyncedSteps.current >= 10) {
             syncStepsToFirestore(totalSteps);
             lastSyncedSteps.current = totalSteps;
@@ -154,11 +207,10 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
     };
 
     subscribeToPedometer();
-
     return () => {
       if (subscription) subscription.remove();
     };
-  }, [isLoaded]);
+  }, [isLoaded, isHealthConnectActive]);
 
   const syncStepsToFirestore = async (steps: number) => {
     const userId = auth.currentUser?.uid || 'test_user_123';
@@ -168,7 +220,7 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
         const distance = parseFloat((steps * DISTANCE_PER_STEP).toFixed(2));
         const docRef = doc(db, 'users', userId, 'weeklySummary', 'currentWeek');
         await setDoc(docRef, { steps, calories, distance }, { merge: true });
-        console.log("Steps, calories and distance synced to Firestore:", steps, calories, distance);
+        console.log("Firestore sync success:", steps);
       } catch (error) {
         console.error("Error syncing steps: ", error);
       }
@@ -176,7 +228,14 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <StepContext.Provider value={{ currentSteps, currentCalories, currentDistance, syncStepsToFirestore }}>
+    <StepContext.Provider value={{
+      currentSteps,
+      currentCalories,
+      currentDistance,
+      isHealthConnectActive,
+      syncStepsToFirestore,
+      manualSync
+    }}>
       {children}
     </StepContext.Provider>
   );

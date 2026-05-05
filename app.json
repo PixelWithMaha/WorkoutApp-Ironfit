@@ -16,12 +16,15 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSMotionUsageDescription": "This app uses the pedometer to track your daily steps."
-      }
+      },
+      "bundleIdentifier": "com.ironfit.app"
     },
     "android": {
       "package": "com.ironfit.app",
+      "minSdkVersion": 26,
       "permissions": [
-        "ACTIVITY_RECOGNITION"
+        "ACTIVITY_RECOGNITION",
+        "android.permission.health.READ_STEPS"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -32,6 +35,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "react-native-health-connect",
+        {
+          "permissions": [
+            "READ_STEPS"
+          ]
+        }
+      ]
+    ]
   }
 }

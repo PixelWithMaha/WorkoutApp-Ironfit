@@ -1,7 +1,5 @@
 import Groq from "groq-sdk";
 
-// Initialize the Groq client using your environment variable
-// In Expo, variables must be prefixed with EXPO_PUBLIC_ to be accessible via process.env
 const groq = new Groq({
     apiKey: process.env.EXPO_PUBLIC_GROQ_API_KEY || "",
     dangerouslyAllowBrowser: true
