@@ -1,11 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
-import { Feather, Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, TextInput } from 'react-native';
+import { Feather, Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart, ProgressChart } from 'react-native-chart-kit';
 import { colors } from '../theme/colors';
 import { useStepContext } from '../context/StepContext';
-import { Modal, ActivityIndicator } from 'react-native';
+import { Modal, ActivityIndicator, Alert } from 'react-native';
 import { useHistory } from '../hooks/useHistory';
+import { useProfile } from '../hooks/useProfile';
+import { getFitnessPlan } from '../services/aiService';
+import Markdown from 'react-native-markdown-display';
 
 const { width } = Dimensions.get('window');
 
@@ -17,11 +20,46 @@ const progressData = {
 export default function ProgressScreen() {
   const { currentSteps, currentCalories, currentDistance } = useStepContext();
   const { weeklyData, loading: historyLoading } = useHistory();
+  const { profileData } = useProfile();
   const [summaryVisible, setSummaryVisible] = React.useState(false);
+  const [aiModalVisible, setAiModalVisible] = React.useState(false);
+  const [aiStepGoal, setAiStepGoal] = React.useState(10000);
 
-  // Calculate goal progress (default 10k steps)
-  const stepGoal = 10000;
-  const progressPercent = Math.min((currentSteps / stepGoal), 1);
+  // New States for AI
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [aiResult, setAiResult] = React.useState('');
+  const [userInput, setUserInput] = React.useState({
+    age: profileData.age || '',
+    goal: '',
+    weight: profileData.weight || '',
+    height: profileData.height || ''
+  });
+  const [showInputFields, setShowInputFields] = React.useState(true); // Toggle between Form and Result
+
+  // Pre-fill user input when profile data is loaded
+  React.useEffect(() => {
+    if (profileData) {
+      setUserInput(prev => ({
+        ...prev,
+        age: profileData.age || prev.age,
+        weight: profileData.weight || prev.weight,
+        height: profileData.height || prev.height,
+      }));
+    }
+  }, [profileData]);
+
+  // Calculate BMI and health analysis
+  const weight = parseFloat(profileData.weight) || 70;
+  const height = (parseFloat(profileData.height) / 100) || 1.7; // convert cm to m
+  const bmi = (weight / (height * height)).toFixed(1);
+
+  let bmiCategory = "Normal";
+  if (parseFloat(bmi) < 18.5) bmiCategory = "Underweight";
+  else if (parseFloat(bmi) >= 25 && parseFloat(bmi) < 30) bmiCategory = "Overweight";
+  else if (parseFloat(bmi) >= 30) bmiCategory = "Obese";
+
+  // Calculate goal progress based on AI recommended goal
+  const progressPercent = Math.min((currentSteps / aiStepGoal), 1);
   const displayPercent = Math.round(progressPercent * 100);
 
   const progressData = {
@@ -36,12 +74,38 @@ export default function ProgressScreen() {
       data: weeklyData.length > 0 ? weeklyData.map(d => d.distance) : [5, 8, 7, 12]
     }]
   };
+  const handleGetAiPlan = async () => {
+    if (!userInput.age || !userInput.goal || !userInput.weight || !userInput.height) {
+      Alert.alert("Missing Info", "Please fill in all fields for a precise AI plan.");
+      return;
+    }
 
+    setAiLoading(true);
+    setShowInputFields(false);
+
+    try {
+      const data = {
+        age: userInput.age,
+        weight: userInput.weight,
+        height: userInput.height,
+        goal: userInput.goal
+      };
+
+      const result = await getFitnessPlan(data);
+      setAiResult(result);
+    } catch (error) {
+      console.error("AI Fetch Error:", error);
+      Alert.alert("Error", "AI Coach is resting. Try again later!");
+      setShowInputFields(true);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Progress</Text>
@@ -52,12 +116,15 @@ export default function ProgressScreen() {
 
         {/* Stay Active Card */}
         <View style={[styles.stayActiveCard, { backgroundColor: colors.primaryLight }]}>
-          <Text style={[styles.stayActiveTitle, { color: colors.white }]}>Stay Active!</Text>
-          <Text style={[styles.stayActiveDesc, { color: 'rgba(255,255,255,0.7)' }]}>See your steps and progress{'\n'}this week.</Text>
-          <TouchableOpacity style={styles.viewSummaryButton} onPress={() => setSummaryVisible(true)}>
-            <Text style={styles.viewSummaryText}>View Summary</Text>
+          <Text style={[styles.stayActiveTitle, { color: colors.white }]}>IronFit AI Coach</Text>
+          <Text style={[styles.stayActiveDesc, { color: 'rgba(255,255,255,0.7)' }]}>Get personalized plans based on{'\n'}your current activity.</Text>
+          <TouchableOpacity
+            style={styles.viewSummaryButton}
+            onPress={() => setAiModalVisible(true)}
+          >
+            <Text style={styles.viewSummaryText}>Get fit with AI</Text>
             <View style={styles.summaryIconCircle}>
-              <Feather name="arrow-up-right" size={16} color={colors.white} />
+              <MaterialCommunityIcons name="robot" size={16} color={colors.white} />
             </View>
           </TouchableOpacity>
         </View>
@@ -224,10 +291,112 @@ export default function ProgressScreen() {
           </View>
         </Modal>
 
+        {/* AI Coach Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={aiModalVisible}
+          onRequestClose={() => setAiModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { minHeight: '50%', borderTopLeftRadius: 40, borderTopRightRadius: 40 }]}>
+
+              <View style={styles.modalHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <MaterialCommunityIcons name="robot" size={28} color={colors.primary} />
+                  <Text style={[styles.modalTitle, { marginLeft: 10 }]}>IronFit AI Coach</Text>
+                </View>
+                <TouchableOpacity onPress={() => setAiModalVisible(false)} style={styles.modalCloseIcon}>
+                  <Feather name="x" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {showInputFields ? (
+                /* PHASE 1: USER INPUT FORM */
+                <View>
+                  <Text style={styles.chartLabel}>Confirm your details for Groq AI</Text>
+                  <View style={styles.inputGroup}>
+                    <TextInput
+                      style={[styles.input, { flex: 1, marginRight: 8 }]}
+                      placeholder="Age"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                      value={userInput.age}
+                      onChangeText={(text) => setUserInput({ ...userInput, age: text })}
+                    />
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      placeholder="Goal"
+                      placeholderTextColor={colors.textSecondary}
+                      value={userInput.goal}
+                      onChangeText={(text) => setUserInput({ ...userInput, goal: text })}
+                    />
+                  </View>
+
+                  <View style={[styles.inputGroup, { marginTop: 12 }]}>
+                    <TextInput
+                      style={[styles.input, { flex: 1, marginRight: 8 }]}
+                      placeholder="Weight (kg)"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                      value={userInput.weight}
+                      onChangeText={(text) => setUserInput({ ...userInput, weight: text })}
+                    />
+                    <TextInput
+                      style={[styles.input, { flex: 1 }]}
+                      placeholder="Height (cm)"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                      value={userInput.height}
+                      onChangeText={(text) => setUserInput({ ...userInput, height: text })}
+                    />
+                  </View>
+
+                  <TouchableOpacity style={styles.saveButton} onPress={handleGetAiPlan}>
+                    <Text style={styles.saveButtonText}>Generate Groq AI Plan</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                /* PHASE 2: AI RESULT OR LOADING */
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {aiLoading ? (
+                    <View style={{ padding: 50, alignItems: 'center' }}>
+                      <ActivityIndicator size="large" color={colors.primary} />
+                      <Text style={{ textAlign: 'center', marginTop: 16, color: colors.textSecondary }}>AI is analyzing your stats...</Text>
+                    </View>
+                  ) : (
+                    <View>
+                      <Text style={styles.aiSectionTitle}>Your Personalized Plan</Text>
+                      <Markdown style={markdownStyles}>{aiResult}</Markdown>
+
+                      <View style={[styles.aiResultCard, { backgroundColor: colors.primary, marginTop: 24 }]}>
+                        <Text style={[styles.aiSectionTitle, { color: colors.white, marginBottom: 8 }]}>Goal Update</Text>
+                        <Text style={styles.aiRecText}>
+                          I've updated your daily goal to 12,000 steps based on your current progress. Let's hit it!
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={[styles.closeButton, { marginTop: 24 }]}
+                        onPress={() => {
+                          setAiModalVisible(false);
+                          setShowInputFields(true); // Reset for next time
+                        }}
+                      >
+                        <Text style={styles.closeButtonText}>Got it!</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
+
 
         {/* My Goal Section */}
         <Text style={styles.sectionTitle}>My Goal</Text>
-        
+
         <View style={styles.goalContainer}>
           <View style={styles.goalCard}>
             <View style={styles.progressRingContainer}>
@@ -253,8 +422,8 @@ export default function ProgressScreen() {
           </View>
           <View style={styles.emptyCard} />
         </View>
-        
-        <View style={{height: 100}} />
+
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -266,7 +435,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
@@ -465,6 +636,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
+  modalCloseIcon: {
+    padding: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 20,
+  },
   chartLabel: {
     fontSize: 16,
     fontWeight: '600',
@@ -528,4 +704,160 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  aiResultCard: {
+    backgroundColor: '#F8F9FB',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+  },
+  aiSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 16,
+  },
+  bmiResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bmiCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+  bmiValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  bmiLabel: {
+    fontSize: 10,
+    color: colors.textSecondary,
+  },
+  bmiInfo: {
+    marginLeft: 20,
+    flex: 1,
+  },
+  bmiCategoryText: {
+    fontSize: 18,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  bmiDesc: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  statBoxLarge: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  statValueLarge: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  statLabelLarge: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  statSubtitle: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  dietItem: {
+    marginBottom: 16,
+  },
+  dietTime: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  dietText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  aiRecText: {
+    fontSize: 15,
+    color: colors.white,
+    lineHeight: 22,
+    opacity: 0.9,
+  },
+  aiResponseText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  input: {
+    backgroundColor: '#F0F0F0',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text,
+  },
+  inputGroup: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  saveButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
+
+const markdownStyles: any = {
+  body: {
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  heading1: {
+    color: colors.primary,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  heading2: {
+    color: colors.primary,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  heading3: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  list_item: {
+    marginVertical: 4,
+  },
+  bullet_list: {
+    marginBottom: 10,
+  },
+};

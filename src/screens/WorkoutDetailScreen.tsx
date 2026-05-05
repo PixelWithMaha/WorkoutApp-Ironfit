@@ -68,7 +68,7 @@ export default function WorkoutDetailScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="x" size={24} color={colors.textPrimary} />
+          <Feather name="x" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{workout.title} Mode</Text>
         <View style={{ width: 24 }} />

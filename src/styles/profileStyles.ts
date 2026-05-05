@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.text,
   },
   editButtonText: {
     color: colors.primary,
@@ -59,12 +59,12 @@ export const styles = StyleSheet.create({
   userName: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.text,
   },
   nameInput: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.text,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     paddingHorizontal: 10,
@@ -100,7 +100,7 @@ export const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.text,
   },
   statInput: {
     fontSize: 18,
@@ -123,7 +123,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.text,
     marginBottom: 10,
   },
   bioText: {
@@ -133,7 +133,7 @@ export const styles = StyleSheet.create({
   },
   bioInput: {
     fontSize: 15,
-    color: colors.textPrimary,
+    color: colors.text,
     lineHeight: 22,
     borderWidth: 1,
     borderColor: colors.border,
@@ -183,7 +183,7 @@ export const styles = StyleSheet.create({
   menuText: {
     flex: 1,
     fontSize: 16,
-    color: colors.textPrimary,
+    color: colors.text,
     fontWeight: '500',
   },
   logoutItem: {
@@ -231,7 +231,7 @@ export const styles = StyleSheet.create({
   detailValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.text,
   },
   detailInput: {
     fontSize: 16,

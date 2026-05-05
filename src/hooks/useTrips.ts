@@ -37,20 +37,16 @@ export function useTrips() {
     return () => unsubscribe();
   }, [userId]);
 
-  const addTrip = async (tripData: Omit<Trip, 'id' | 'createdAt'>) => {
-    const { title, distance, timeRange, avgBpm } = tripData;
+  // Update the addTrip function inside useTrips.ts
+  const addTrip = async (tripData: { title: string; distance: number; timeRange: string; avgBpm: number }) => {
     try {
       await addDoc(collection(db, 'users', userId, 'trips'), {
-        title,
-        distance,
-        timeRange,
-        avgBpm,
+        ...tripData, // This spreads the title, distance, etc.
         createdAt: Timestamp.now()
       });
-      console.log("✅ Trip added to Firebase");
+      console.log("Trip added successfully");
     } catch (error) {
       console.error("Error adding trip:", error);
-      throw error; // Throw so the UI can catch it and show an alert
     }
   };
 

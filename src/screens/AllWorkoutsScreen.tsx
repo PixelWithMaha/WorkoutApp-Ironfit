@@ -17,7 +17,7 @@ export default function AllWorkoutsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" size={24} color={colors.textPrimary} />
+          <Feather name="arrow-left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>All Workouts</Text>
         <View style={{ width: 24 }} />
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.text,
   },
   content: {
     padding: 20,
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: colors.textPrimary,
+    color: colors.text,
   },
   desc: {
     fontSize: 14,
