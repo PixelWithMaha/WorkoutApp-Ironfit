@@ -18,9 +18,9 @@ const analytics = getAnalytics(app);
 
 
 if (app) {
-  console.log("🔥 Firebase initialized successfully for Project:", firebaseConfig.projectId);
+  console.log("Firebase initialized successfully for Project:", firebaseConfig.projectId);
 } else {
-  console.error("❌ Firebase initialization failed.");
+  console.error("Firebase initialization failed.");
 }
 
 export const db = getFirestore(app);

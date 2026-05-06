@@ -2,7 +2,7 @@ import { StyleSheet, Dimensions } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-export const PRIMARY_COLOR = '#12015cff'; // Matching the deep navy in the UI
+export const PRIMARY_COLOR = '#12015cff'; 
 
 export const styles = StyleSheet.create({
   container: {
@@ -11,7 +11,8 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 40,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',

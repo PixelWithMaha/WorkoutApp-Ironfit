@@ -19,7 +19,7 @@ export default function WorkoutDetailScreen() {
 
   const workoutSteps = Math.max(0, currentSteps - initialSteps);
   const workoutCalories = Math.max(0, currentCalories - initialCalories);
-  const distance = (workoutSteps * 0.75).toFixed(1); // meters
+  const distance = (workoutSteps * 0.75).toFixed(1); 
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -28,7 +28,7 @@ export default function WorkoutDetailScreen() {
     if (isActive) {
       interval = setInterval(() => {
         setSeconds(s => s + 1);
-        // Simulate heart rate variation
+        
         setHeartRate(prev => {
           const change = Math.floor(Math.random() * 5) - 2;
           const newVal = prev + change;
@@ -60,7 +60,7 @@ export default function WorkoutDetailScreen() {
 
   const handleStop = () => {
     setIsActive(false);
-    // In a real app, we'd save the workout summary to Firebase here
+    
     navigation.goBack();
   };
 
@@ -68,7 +68,7 @@ export default function WorkoutDetailScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="x" size={24} color={colors.textPrimary} />
+          <Feather name="x" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{workout.title} Mode</Text>
         <View style={{ width: 24 }} />
@@ -118,7 +118,7 @@ export default function WorkoutDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A', // Premium Dark Blue
+    backgroundColor: '#0F172A', 
   },
   header: {
     flexDirection: 'row',
