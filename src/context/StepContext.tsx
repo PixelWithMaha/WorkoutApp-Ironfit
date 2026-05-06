@@ -13,8 +13,10 @@ interface StepContextData {
   currentSteps: number;
   currentCalories: number;
   currentDistance: number;
+  notifications: any[];
   manualSync: () => Promise<void>;
   syncStepsToFirestore: (steps: number) => Promise<void>;
+  clearNotifications: () => void;
 }
 
 const StepContext = createContext<StepContextData | undefined>(undefined);
@@ -23,6 +25,7 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   const [currentSteps, setCurrentSteps] = useState(0);
   const [currentCalories, setCurrentCalories] = useState(0);
   const [currentDistance, setCurrentDistance] = useState(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const stepsRef = useRef(0);
@@ -36,6 +39,41 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
     setCurrentCalories(parseFloat((currentSteps * CALORIES_PER_STEP).toFixed(2)));
     setCurrentDistance(parseFloat((currentSteps * DISTANCE_PER_STEP).toFixed(2)));
   }, [currentSteps]);
+
+  const addNotification = (title: string, message: string, type: 'workout' | 'water' | 'goal' | 'motivation' | 'warning' | 'info' = 'info') => {
+    const newNotif = {
+      id: Date.now().toString() + Math.random(),
+      title,
+      message,
+      type,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    setNotifications(prev => [newNotif, ...prev].slice(0, 10));
+  };
+
+  const clearNotifications = () => setNotifications([]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      setTimeout(() => {
+        addNotification("Morning Motivation", "Believe in yourself and you will be unstoppable. Let's hit your goals!", "motivation");
+      }, 3000);
+
+      const checkGoal = () => {
+        if (currentSteps >= 10000 && lastSyncedSteps.current < 10000) {
+          addNotification("Goal Reached! 🏆", "You've crushed your 10,000 steps goal! Fantastic work.", "goal");
+        } else if (currentSteps >= 5000 && lastSyncedSteps.current < 5000) {
+          addNotification("Halfway Point", "You've hit 5,000 steps. You're making great progress!", "goal");
+        }
+      };
+      checkGoal();
+      const waterTimer = setInterval(() => {
+        addNotification("Hydration Reminder", "Time for a glass of water to keep your metabolism high.", "water");
+      }, 2700000);
+
+      return () => clearInterval(waterTimer);
+    }
+  }, [isLoaded, currentSteps]);
 
   const syncWatchData = async () => {
     if (Platform.OS !== 'android') return;
@@ -86,6 +124,11 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
             const diff = stepsRef.current - officialCount;
             if (diff > 10) {
               console.warn(`[StepContext] Inconsistency blocked. Watch: ${officialCount}, Local: ${stepsRef.current}`);
+              addNotification(
+                "Sync Inconsistency",
+                `Your watch reported ${officialCount} steps, which is lower than the local ${stepsRef.current}. Syncing in progress...`,
+                "warning"
+              );
               return;
             }
           }
@@ -152,8 +195,10 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
       currentSteps,
       currentCalories,
       currentDistance,
+      notifications,
       manualSync: syncWatchData,
-      syncStepsToFirestore
+      syncStepsToFirestore,
+      clearNotifications
     }}>
       {children}
     </StepContext.Provider>
