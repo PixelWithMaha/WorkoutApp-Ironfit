@@ -11,7 +11,8 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 40,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',

@@ -24,12 +24,21 @@ const TABS = ['1 Week', '2 Week', '3 Week', '1 Month'];
 
 export default function HistoryScreen() {
   const [activeTab, setActiveTab] = useState('1 Week');
-  const { currentSteps, currentDistance } = useStepContext();
+  const { currentSteps, currentDistance, manualSync } = useStepContext();
   const { trips, addTrip, loading: tripsLoading } = useTrips();
   const { weeklyData, increase, loading: historyLoading, seedDummyData } = useHistory();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [newTrip, setNewTrip] = useState({ title: '', distance: '', timeRange: '8:00 AM - 9:00 AM', avgBpm: '95' });
+
+  const handleManualSync = async () => {
+    try {
+      await manualSync();
+      Alert.alert("Sync Started", "Fetching latest data from your watch...");
+    } catch (error) {
+      Alert.alert("Sync Error", "Could not connect to Health Connect.");
+    }
+  };
 
   const handleSeed = async () => {
     await seedDummyData();
@@ -93,9 +102,14 @@ export default function HistoryScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Step</Text>
-          <TouchableOpacity onPress={handleSeed} style={styles.notificationButton}>
-            <Feather name="database" size={24} color={colors.primary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row' }}>
+            <TouchableOpacity onPress={handleManualSync} style={[styles.notificationButton, { marginRight: 12 }]}>
+              <MaterialCommunityIcons name="watch-variant" size={24} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSeed} style={styles.notificationButton}>
+              <Feather name="database" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Activity & Steps */}
@@ -248,7 +262,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',

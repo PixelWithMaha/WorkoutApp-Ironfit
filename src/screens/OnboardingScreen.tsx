@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
-import Svg, { Path, Circle } from 'react-native-svg';
-import { Feather } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
+import { Check, ChevronsRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../theme/colors';
@@ -18,30 +18,51 @@ type OnboardingNavigationProp = NativeStackNavigationProp<RootStackParamList, 'O
 
 export default function OnboardingScreen() {
   const navigation = useNavigation<OnboardingNavigationProp>();
+  const [isPressed, setIsPressed] = useState(false);
+
+  const brandPrimary = colors.primary || '#0D085A';
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.graphicContainer}>
-        <Svg width={width} height={width * 1.2} viewBox={`0 0 ${width} ${width * 1.2}`}>
-          {/* Abstract arcs representation */}
-          <Path d={`M -50 ${width * 0.8} Q ${width / 2} -100 ${width + 50} ${width * 0.8}`} fill="none" stroke={colors.primary} strokeWidth={80} />
-          <Path d={`M -50 ${width * 1.1} Q ${width / 2} 50 ${width + 50} ${width * 1.1}`} fill="none" stroke={colors.primary} strokeWidth={80} />
-          <Path d={`M -50 ${width * 1.4} Q ${width / 2} 200 ${width + 50} ${width * 1.4}`} fill="none" stroke={colors.primary} strokeWidth={80} />
+        <Svg width={width} height={width} viewBox="0 0 400 400">
+          <Path
+            d="M -50 220 Q 200 -50 450 220"
+            fill="none"
+            stroke={brandPrimary}
+            strokeWidth="50"
+          />
+          <Path
+            d="M -50 350 Q 200 80 450 350"
+            fill="none"
+            stroke={brandPrimary}
+            strokeWidth="50"
+          />
         </Svg>
       </View>
 
       <View style={styles.contentContainer}>
         <Text style={styles.title}>Stay on Top of{'\n'}Your Health</Text>
-        
-        <TouchableOpacity 
-          style={styles.button}
+
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPressIn={() => setIsPressed(true)}
+          onPressOut={() => setIsPressed(false)}
           onPress={() => navigation.navigate('Login')}
+          style={[
+            styles.button,
+            { transform: [{ scale: isPressed ? 0.98 : 1 }] }
+          ]}
         >
           <View style={styles.iconCircle}>
-            <Feather name="check" size={20} color={colors.primary} />
+            <Check size={24} color={brandPrimary} strokeWidth={3} />
           </View>
+
           <Text style={styles.buttonText}>Get Started</Text>
-          <Feather name="chevrons-right" size={24} color={colors.white} />
+
+          <View style={styles.chevronContainer}>
+            <ChevronsRight size={24} color="white" strokeWidth={2.5} />
+          </View>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -61,37 +82,41 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 30,
-    paddingBottom: 50,
+    paddingBottom: 60,
+    alignItems: 'center',
   },
   title: {
     fontSize: 40,
     fontWeight: '800',
-    color: colors.primary,
+    color: '#0D085A',
     textAlign: 'center',
-    marginBottom: 40,
-    lineHeight: 48,
+    marginBottom: 48,
+    lineHeight: 44,
   },
   button: {
-    backgroundColor: colors.primary,
-    borderRadius: 40,
+    backgroundColor: '#0D085A',
+    width: '100%',
+    height: 70,
+    borderRadius: 35,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 10,
-    paddingRight: 20,
-    height: 70,
+    paddingHorizontal: 10,
   },
   iconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.white,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonText: {
-    color: colors.white,
+    color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  chevronContainer: {
+    paddingRight: 10,
   },
 });
