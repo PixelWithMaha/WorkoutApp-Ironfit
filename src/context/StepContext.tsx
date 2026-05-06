@@ -53,15 +53,12 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
 
   const clearNotifications = () => setNotifications([]);
 
-  // Automation: Generate helpful reminders
   useEffect(() => {
     if (isLoaded) {
-      // 1. Initial Motivation on Load
       setTimeout(() => {
         addNotification("Morning Motivation", "Believe in yourself and you will be unstoppable. Let's hit your goals!", "motivation");
       }, 3000);
 
-      // 2. Goal Progress Checker
       const checkGoal = () => {
         if (currentSteps >= 10000 && lastSyncedSteps.current < 10000) {
           addNotification("Goal Reached! 🏆", "You've crushed your 10,000 steps goal! Fantastic work.", "goal");
@@ -70,8 +67,6 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
         }
       };
       checkGoal();
-
-      // 3. Water Intake (Every 45 mins)
       const waterTimer = setInterval(() => {
         addNotification("Hydration Reminder", "Time for a glass of water to keep your metabolism high.", "water");
       }, 2700000);
