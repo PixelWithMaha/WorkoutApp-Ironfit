@@ -54,17 +54,17 @@ export function useHistory() {
         }
       });
       
-      // Sort or handle as needed. For now just set.
+      
       setWeeklyData(data);
 
-      // Calculate increase compared to 'week_1' (Last Week)
-      // For real calculation, we'd compare currentWeek vs week_1
+      
+      
       const currentWeekRef = doc(db, 'users', userId, 'weeklySummary', 'currentWeek');
       const currentSnap = await getDoc(currentWeekRef);
       
       if (currentSnap.exists()) {
         const current = currentSnap.data().distance || 0;
-        const lastWeek = data.find(d => d.weekLabel === 'Last Week')?.distance || 1; // Avoid div by zero
+        const lastWeek = data.find(d => d.weekLabel === 'Last Week')?.distance || 1; 
         const inc = ((current - lastWeek) / lastWeek) * 100;
         setIncrease(parseFloat(inc.toFixed(1)));
       }

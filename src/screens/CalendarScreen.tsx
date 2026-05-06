@@ -25,12 +25,12 @@ export default function CalendarScreen() {
   
   const { plans, loading, addPlan, deletePlan } = useWorkoutPlans();
 
-  // Filter plans for selected date
+  
   const selectedDayPlans = useMemo(() => {
     return plans.filter(plan => plan.date === selectedDate);
   }, [plans, selectedDate]);
 
-  // Mark dates on calendar
+  
   const markedDates = useMemo(() => {
     const marks: any = {};
     plans.forEach(plan => {
@@ -42,7 +42,7 @@ export default function CalendarScreen() {
       };
     });
     
-    // Ensure selected date is highlighted even without plans
+    
     if (!marks[selectedDate]) {
       marks[selectedDate] = { selected: true, selectedColor: colors.primary };
     }
@@ -79,7 +79,7 @@ export default function CalendarScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Workout Planner</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
@@ -87,7 +87,7 @@ export default function CalendarScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Calendar */}
+        {}
         <View style={styles.calendarCard}>
           <Calendar
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
@@ -106,7 +106,7 @@ export default function CalendarScreen() {
           />
         </View>
 
-        {/* Plans for Selected Date */}
+        {}
         <View style={styles.plansHeader}>
           <Text style={styles.plansTitle}>
             Plans for {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -141,7 +141,7 @@ export default function CalendarScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Add Plan Modal */}
+      {}
       <Modal
         animationType="slide"
         transparent={true}

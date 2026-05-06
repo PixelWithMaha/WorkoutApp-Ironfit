@@ -37,11 +37,11 @@ export function useTrips() {
     return () => unsubscribe();
   }, [userId]);
 
-  // Update the addTrip function inside useTrips.ts
+  
   const addTrip = async (tripData: { title: string; distance: number; timeRange: string; avgBpm: number }) => {
     try {
       await addDoc(collection(db, 'users', userId, 'trips'), {
-        ...tripData, // This spreads the title, distance, etc.
+        ...tripData, 
         createdAt: Timestamp.now()
       });
       console.log("Trip added successfully");

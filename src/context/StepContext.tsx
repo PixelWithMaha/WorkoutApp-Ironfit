@@ -154,7 +154,9 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
     try {
       const calories = parseFloat((steps * CALORIES_PER_STEP).toFixed(2));
       const distance = parseFloat((steps * DISTANCE_PER_STEP).toFixed(2));
-      const docRef = doc(db, 'users', userId, 'weeklySummary', 'currentWeek');
+      
+      
+      const docRef = doc(db, `users/${userId}/weeklySummary/currentWeek`);
 
       await setDoc(docRef, { steps, calories, distance }, { merge: true });
       console.log("[StepContext] Firestore Updated:", steps);
@@ -167,13 +169,15 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
     const fetchInitialSteps = async () => {
       const userId = auth.currentUser?.uid || 'test_user_123';
       try {
-        const docRef = doc(db, 'users', userId, 'weeklySummary', 'currentWeek');
+        const docRef = doc(db, `users/${userId}/weeklySummary/currentWeek`);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
           setCurrentSteps(data.steps || 0);
           lastSyncedSteps.current = data.steps || 0;
         }
+      } catch (err) {
+        console.error("[StepContext] Initial Fetch Error:", err);
       } finally {
         setIsLoaded(true);
       }

@@ -2,7 +2,7 @@ import { StyleSheet, Dimensions } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-export const PRIMARY_COLOR = '#12015cff'; // Matching the deep navy in the UI
+export const PRIMARY_COLOR = '#12015cff'; 
 
 export const styles = StyleSheet.create({
   container: {

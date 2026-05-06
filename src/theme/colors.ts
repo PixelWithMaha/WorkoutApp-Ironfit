@@ -1,7 +1,7 @@
 export const colors = {
-  primary: '#12015C', // Home Page Navy Blue
+  primary: '#12015C', 
   primaryLight: '#241478',
-  background: '#F5F6FA', // Light gray background
+  background: '#F5F6FA', 
   card: '#FFFFFF',
   text: '#1C1C1E',
   textSecondary: '#8E8E93',
@@ -11,12 +11,12 @@ export const colors = {
   error: '#FF3B30',
   white: '#FFFFFF',
 
-  // Specific icon colors
+  
   water: '#30B0FF',
   calories: '#FF9500',
   heart: '#AF52DE',
 
-  // Chart Colors
+  
   chartBarActive: '#12015C',
   chartBarInactive: '#E5E5EA',
 };

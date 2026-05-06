@@ -69,7 +69,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.detailsContainer}>
-          {/* Weight Row */}
+          {}
           <TouchableOpacity 
             style={styles.detailRow} 
             onPress={() => !isEditing && setIsEditing(true)}
@@ -95,7 +95,7 @@ export default function ProfileScreen() {
             {!isEditing && <Feather name="edit-2" size={16} color={colors.textSecondary} style={styles.editIcon} />}
           </TouchableOpacity>
 
-          {/* Height Row */}
+          {}
           <TouchableOpacity 
             style={styles.detailRow}
             onPress={() => !isEditing && setIsEditing(true)}
@@ -120,7 +120,7 @@ export default function ProfileScreen() {
             {!isEditing && <Feather name="edit-2" size={16} color={colors.textSecondary} style={styles.editIcon} />}
           </TouchableOpacity>
 
-          {/* Age Row */}
+          {}
           <TouchableOpacity 
             style={styles.detailRow}
             onPress={() => !isEditing && setIsEditing(true)}
@@ -145,7 +145,7 @@ export default function ProfileScreen() {
             {!isEditing && <Feather name="edit-2" size={16} color={colors.textSecondary} style={styles.editIcon} />}
           </TouchableOpacity>
 
-          {/* Goal Row */}
+          {}
           <TouchableOpacity 
             style={[styles.detailRow, { borderBottomWidth: 0 }]}
             onPress={() => !isEditing && setIsEditing(true)}

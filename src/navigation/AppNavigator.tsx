@@ -6,11 +6,14 @@ import TabNavigator from './TabNavigator';
 import AllWorkoutsScreen from '../screens/AllWorkoutsScreen';
 import WorkoutDetailScreen from '../screens/WorkoutDetailScreen';
 
+import ProgressScreen from '../screens/ProgressScreen';
+
 export type RootStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   MainTabs: undefined;
   AllWorkouts: undefined;
+  Progress: undefined;
   WorkoutDetail: { workout: any };
 };
 
@@ -18,11 +21,17 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'slide_from_right' 
+      }}
+    >
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="AllWorkouts" component={AllWorkoutsScreen} />
+      <Stack.Screen name="Progress" component={ProgressScreen} />
       <Stack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} />
     </Stack.Navigator>
   );

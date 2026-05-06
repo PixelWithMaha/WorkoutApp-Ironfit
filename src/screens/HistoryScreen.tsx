@@ -47,7 +47,7 @@ export default function HistoryScreen() {
 
   const handleAddTrip = async () => {
     if (newTrip.title && newTrip.distance) {
-      // Wrap the 4 values into ONE object { }
+      
       await addTrip({
         title: newTrip.title,
         distance: parseFloat(newTrip.distance),
@@ -61,7 +61,7 @@ export default function HistoryScreen() {
   };
 
 
-  // Filter logic for metrics row based on tabs
+  
   const getStatsForTab = () => {
     switch (activeTab) {
       case '1 Week':
@@ -87,11 +87,11 @@ export default function HistoryScreen() {
   const distPerHour = (parseFloat(stats.dist.toString()) / 1.5).toFixed(2);
 
 
-  // Calculate workout intensity
+  
   const getIntensity = (steps: number) => {
-    if (steps < 2000) return { label: 'Low', color: '#F97316' }; // Orange
-    if (steps < 7000) return { label: 'Normal', color: '#22C55E' }; // Green
-    return { label: 'High', color: '#3B82F6' }; // Blue
+    if (steps < 2000) return { label: 'Low', color: '#F97316' }; 
+    if (steps < 7000) return { label: 'Normal', color: '#22C55E' }; 
+    return { label: 'High', color: '#3B82F6' }; 
   };
   const intensity = getIntensity(currentSteps);
 
@@ -99,7 +99,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Step</Text>
           <View style={{ flexDirection: 'row' }}>
@@ -112,7 +112,7 @@ export default function HistoryScreen() {
           </View>
         </View>
 
-        {/* Activity & Steps */}
+        {}
         <Text style={styles.activitySubtitle}>Walk & Run Activity</Text>
         <View style={styles.stepsContainer}>
           <FontAwesome5 name="running" size={32} color={colors.primary} style={styles.runIcon} />
@@ -122,7 +122,7 @@ export default function HistoryScreen() {
           <Text style={styles.stepLabel}>Steps</Text>
         </View>
 
-        {/* Tabs */}
+        {}
         <View style={styles.tabsContainer}>
           {TABS.map((tab) => (
             <TouchableOpacity
@@ -135,7 +135,7 @@ export default function HistoryScreen() {
           ))}
         </View>
 
-        {/* Distance Increase Card */}
+        {}
         <View style={styles.increaseCard}>
           <View style={styles.increaseIconContainer}>
             <Feather name="trending-up" size={24} color={colors.white} />
@@ -149,7 +149,7 @@ export default function HistoryScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Metrics Row */}
+        {}
         <View style={styles.metricsRow}>
           <View style={styles.metricItem}>
             <Text style={styles.metricItemLabel}>Dist ({activeTab})</Text>
@@ -167,7 +167,7 @@ export default function HistoryScreen() {
 
         <View style={styles.divider} />
 
-        {/* Recent Activities Horizontal Scroll */}
+        {}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentActivities}>
           {tripsLoading ? (
             <ActivityIndicator color={colors.primary} style={{ marginLeft: 20 }} />
@@ -189,7 +189,7 @@ export default function HistoryScreen() {
           )}
         </ScrollView>
 
-        {/* Add Trip Modal */}
+        {}
         <Modal
           animationType="slide"
           transparent={true}
@@ -232,7 +232,7 @@ export default function HistoryScreen() {
           </View>
         </Modal>
 
-        {/* Highlights */}
+        {}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Highlights</Text>
           <TouchableOpacity><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
