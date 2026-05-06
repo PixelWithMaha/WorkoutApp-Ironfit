@@ -25,8 +25,8 @@ export default function AllWorkoutsScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         {workouts.map((workout) => (
-          <TouchableOpacity 
-            key={workout.id} 
+          <TouchableOpacity
+            key={workout.id}
             style={styles.card}
             onPress={() => navigation.navigate('WorkoutDetail', { workout })}
           >

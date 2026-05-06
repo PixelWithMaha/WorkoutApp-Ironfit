@@ -10,7 +10,8 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-  Alert
+  Alert,
+  Image
 } from 'react-native';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -172,16 +173,33 @@ export default function HistoryScreen() {
           {tripsLoading ? (
             <ActivityIndicator color={colors.primary} style={{ marginLeft: 20 }} />
           ) : trips.length > 0 ? (
-            trips.map(trip => (
-              <View key={trip.id} style={styles.activityCard}>
-                <View style={styles.activityIconCircle}>
-                  <MaterialCommunityIcons name="map-marker-distance" size={24} color={colors.primary} />
+            trips.map(trip => {
+              const getTripImage = (title: string) => {
+                const lowerTitle = title.toLowerCase();
+                if (lowerTitle.includes('gym')) {
+                  return { uri: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?q=80&w=500' };
+                }
+                if (lowerTitle.includes('morning')) {
+                  return { uri: 'https://images.unsplash.com/photo-1444464666168-49d633b867ad?q=80&w=500' };
+                }
+                if (lowerTitle.includes('night')) {
+                  return { uri: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=500' };
+                }
+                return { uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=500' };
+              };
+
+              return (
+                <View key={trip.id} style={styles.activityCard}>
+                  <Image 
+                    source={getTripImage(trip.title)} 
+                    style={styles.activityIconCircle} 
+                  />
+                  <Text style={styles.activityTime}>{trip.timeRange}</Text>
+                  <Text style={styles.activityName}>{trip.title}</Text>
+                  <Text style={styles.activityDetails}>AVG {trip.avgBpm} BPM - {trip.distance} Km</Text>
                 </View>
-                <Text style={styles.activityTime}>{trip.timeRange}</Text>
-                <Text style={styles.activityName}>{trip.title}</Text>
-                <Text style={styles.activityDetails}>AVG {trip.avgBpm} BPM - {trip.distance} Km</Text>
-              </View>
-            ))
+              );
+            })
           ) : (
             <View style={[styles.activityCard, { justifyContent: 'center' }]}>
               <Text style={styles.activityName}>No trips logged yet</Text>
@@ -222,7 +240,7 @@ export default function HistoryScreen() {
 
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setModalVisible(false)}>
-                  <Text style={styles.buttonText}>Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleAddTrip}>
                   <Text style={styles.buttonText}>Log Trip</Text>
@@ -407,8 +425,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   activityCard: {
-    width: width * 0.6,
-    marginRight: 16,
+    width: 150,
+    marginRight: 20,
   },
   activityMapPlaceholder: {
     height: 120,
@@ -456,8 +474,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   activityIconCircle: {
-    width: 120,
-    height: 120,
+    width: 150,
+    height: 150,
     borderRadius: 16,
     backgroundColor: '#F0F9FF',
     justifyContent: 'center',
@@ -508,7 +526,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#E2E8F0',
     marginRight: 10,
   },
   saveButton: {
@@ -518,5 +536,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.white,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#475569',
   },
 });
