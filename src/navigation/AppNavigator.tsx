@@ -7,6 +7,7 @@ import AllWorkoutsScreen from '../screens/AllWorkoutsScreen';
 import WorkoutDetailScreen from '../screens/WorkoutDetailScreen';
 
 import ProgressScreen from '../screens/ProgressScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -14,6 +15,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   AllWorkouts: undefined;
   Progress: undefined;
+  Settings: undefined;
   WorkoutDetail: { workout: any };
 };
 
@@ -32,6 +34,7 @@ export default function AppNavigator() {
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="AllWorkouts" component={AllWorkoutsScreen} />
       <Stack.Screen name="Progress" component={ProgressScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} />
     </Stack.Navigator>
   );

@@ -19,7 +19,7 @@ export default function WorkoutDetailScreen() {
 
   const workoutSteps = Math.max(0, currentSteps - initialSteps);
   const workoutCalories = Math.max(0, currentCalories - initialCalories);
-  const distance = (workoutSteps * 0.75).toFixed(1); 
+  const distance = (workoutSteps * 0.75).toFixed(1);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -28,7 +28,7 @@ export default function WorkoutDetailScreen() {
     if (isActive) {
       interval = setInterval(() => {
         setSeconds(s => s + 1);
-        
+
         setHeartRate(prev => {
           const change = Math.floor(Math.random() * 5) - 2;
           const newVal = prev + change;
@@ -60,7 +60,7 @@ export default function WorkoutDetailScreen() {
 
   const handleStop = () => {
     setIsActive(false);
-    
+
     navigation.goBack();
   };
 
@@ -77,7 +77,7 @@ export default function WorkoutDetailScreen() {
       <View style={styles.mainDisplay}>
         <Text style={styles.timeLabel}>Workout Duration</Text>
         <Text style={styles.timeValue}>{formatTime(seconds)}</Text>
-        
+
         <View style={styles.heartRateContainer}>
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
             <MaterialCommunityIcons name="heart" size={40} color="#FF5252" />
@@ -104,8 +104,8 @@ export default function WorkoutDetailScreen() {
       </View>
 
       <View style={styles.controls}>
-        <TouchableOpacity 
-          style={[styles.controlButton, styles.stopButton]} 
+        <TouchableOpacity
+          style={[styles.controlButton, styles.stopButton]}
           onPress={handleStop}
         >
           <Text style={styles.stopButtonText}>End Workout</Text>
@@ -118,7 +118,7 @@ export default function WorkoutDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A', 
+    backgroundColor: '#0F172A',
   },
   header: {
     flexDirection: 'row',

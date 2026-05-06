@@ -9,12 +9,14 @@ import {
   TextInput,
   ActivityIndicator
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { styles } from '../styles/profileStyles';
 import { useProfile } from '../hooks/useProfile';
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<any>();
   const {
     profileData,
     setProfileData,
@@ -200,7 +202,7 @@ export default function ProfileScreen() {
         )}
 
         <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
             <View style={[styles.menuIcon, {backgroundColor: '#EBF5FF'}]}>
               <Feather name="settings" size={20} color="#3B82F6" />
             </View>
