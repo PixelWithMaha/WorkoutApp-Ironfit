@@ -6,6 +6,7 @@ import {
   initialize,
   requestPermission,
   aggregateRecord,
+  readRecords
 } from 'react-native-health-connect';
 
 interface StepContextData {
@@ -49,29 +50,55 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
           const startOfDay = new Date();
           startOfDay.setHours(0, 0, 0, 0);
 
-          const result = await aggregateRecord({
-            recordType: 'Steps',
+          const response = await readRecords('Steps', {
             timeRangeFilter: {
               operator: 'between',
               startTime: startOfDay.toISOString(),
               endTime: new Date().toISOString(),
             },
-            dataOriginFilter: ['com.xiaomi.wearable', 'com.mi.health']
           });
 
-          const officialCount = result?.COUNT_TOTAL || 0;
+          const sourceAudit: { [key: string]: number } = {};
+          response.records.forEach((record: any) => {
+            const origin = record.metadata?.dataOrigin || 'unknown';
+            const count = record.count || 0;
+            sourceAudit[origin] = (sourceAudit[origin] || 0) + count;
+          });
+
+          console.log("--- HEALTH CONNECT SOURCE AUDIT ---");
+          console.table(sourceAudit);
+
+          const miFitnessSource = 'com.xiaomi.wearable';
+          const miHealthSource = 'com.mi.health';
+
+          let officialCount = 0;
+          if (sourceAudit[miFitnessSource]) {
+            officialCount = sourceAudit[miFitnessSource];
+          } else if (sourceAudit[miHealthSource]) {
+            officialCount = sourceAudit[miHealthSource];
+          } else {
+            officialCount = Math.max(...Object.values(sourceAudit), 0);
+          }
 
           console.log(`[Clean Sync] Mi Fitness Total: ${officialCount}`);
-          setCurrentSteps(officialCount);
 
-          setCurrentSteps(officialCount);
+          if (officialCount < stepsRef.current && officialCount > 0 && stepsRef.current > 0) {
+            const diff = stepsRef.current - officialCount;
+            if (diff > 10) {
+              console.warn(`[StepContext] Inconsistency blocked. Watch: ${officialCount}, Local: ${stepsRef.current}`);
+              return;
+            }
+          }
 
-          if (officialCount !== lastSyncedSteps.current) {
-            await syncStepsToFirestore(officialCount);
-            lastSyncedSteps.current = officialCount;
+          if (officialCount > 0) {
+            setCurrentSteps(officialCount);
+            if (officialCount !== lastSyncedSteps.current) {
+              await syncStepsToFirestore(officialCount);
+              lastSyncedSteps.current = officialCount;
+            }
           }
         } catch (err) {
-          console.log("[StepContext] Error during aggregation:", err);
+          console.log("[StepContext] Error during raw read:", err);
         }
       }, 500);
     } catch (error) {
