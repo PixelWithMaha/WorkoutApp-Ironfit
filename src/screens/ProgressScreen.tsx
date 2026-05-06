@@ -13,7 +13,7 @@ import Markdown from 'react-native-markdown-display';
 const { width } = Dimensions.get('window');
 
 const progressData = {
-  labels: ["Goal"], // optional
+  labels: ["Goal"], 
   data: [0.6]
 };
 
@@ -25,7 +25,7 @@ export default function ProgressScreen() {
   const [aiModalVisible, setAiModalVisible] = React.useState(false);
   const [aiStepGoal, setAiStepGoal] = React.useState(10000);
 
-  // New States for AI
+  
   const [aiLoading, setAiLoading] = React.useState(false);
   const [aiResult, setAiResult] = React.useState('');
   const [userInput, setUserInput] = React.useState({
@@ -34,9 +34,9 @@ export default function ProgressScreen() {
     weight: profileData.weight || '',
     height: profileData.height || ''
   });
-  const [showInputFields, setShowInputFields] = React.useState(true); // Toggle between Form and Result
+  const [showInputFields, setShowInputFields] = React.useState(true); 
 
-  // Pre-fill user input when profile data is loaded
+  
   React.useEffect(() => {
     if (profileData) {
       setUserInput(prev => ({
@@ -48,9 +48,9 @@ export default function ProgressScreen() {
     }
   }, [profileData]);
 
-  // Calculate BMI and health analysis
+  
   const weight = parseFloat(profileData.weight) || 70;
-  const height = (parseFloat(profileData.height) / 100) || 1.7; // convert cm to m
+  const height = (parseFloat(profileData.height) / 100) || 1.7; 
   const bmi = (weight / (height * height)).toFixed(1);
 
   let bmiCategory = "Normal";
@@ -58,7 +58,7 @@ export default function ProgressScreen() {
   else if (parseFloat(bmi) >= 25 && parseFloat(bmi) < 30) bmiCategory = "Overweight";
   else if (parseFloat(bmi) >= 30) bmiCategory = "Obese";
 
-  // Calculate goal progress based on AI recommended goal
+  
   const progressPercent = Math.min((currentSteps / aiStepGoal), 1);
   const displayPercent = Math.round(progressPercent * 100);
 
@@ -67,7 +67,7 @@ export default function ProgressScreen() {
     data: [progressPercent]
   };
 
-  // Prepare chart data from weekly history
+  
   const chartData = {
     labels: weeklyData.length > 0 ? weeklyData.map(d => d.weekLabel.split(' ')[0]) : ["W1", "W2", "W3", "W4"],
     datasets: [{
@@ -106,7 +106,7 @@ export default function ProgressScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Progress</Text>
           <TouchableOpacity style={styles.shareButton}>
@@ -114,7 +114,7 @@ export default function ProgressScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Stay Active Card */}
+        {}
         <View style={[styles.stayActiveCard, { backgroundColor: colors.primaryLight }]}>
           <Text style={[styles.stayActiveTitle, { color: colors.white }]}>IronFit AI Coach</Text>
           <Text style={[styles.stayActiveDesc, { color: 'rgba(255,255,255,0.7)' }]}>Get personalized plans based on{'\n'}your current activity.</Text>
@@ -135,7 +135,7 @@ export default function ProgressScreen() {
         </View>
 
         <View style={styles.summaryGrid}>
-          {/* Steps */}
+          {}
           <View style={styles.summaryCard}>
             <View style={styles.summaryCardHeader}>
               <Text style={styles.summaryCardTitle}>Steps</Text>
@@ -150,7 +150,7 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          {/* Calories */}
+          {}
           <View style={styles.summaryCard}>
             <View style={styles.summaryCardHeader}>
               <Text style={styles.summaryCardTitle}>Calories</Text>
@@ -165,7 +165,7 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          {/* Distance */}
+          {}
           <View style={styles.summaryCard}>
             <View style={styles.summaryCardHeader}>
               <Text style={styles.summaryCardTitle}>Distance</Text>
@@ -180,7 +180,7 @@ export default function ProgressScreen() {
             </View>
           </View>
 
-          {/* Workout */}
+          {}
           <View style={styles.summaryCard}>
             <View style={styles.summaryCardHeader}>
               <Text style={styles.summaryCardTitle}>Intensity</Text>
@@ -196,7 +196,7 @@ export default function ProgressScreen() {
           </View>
         </View>
 
-        {/* Summary Modal */}
+        {}
         <Modal
           animationType="slide"
           transparent={true}
@@ -291,7 +291,7 @@ export default function ProgressScreen() {
           </View>
         </Modal>
 
-        {/* AI Coach Modal */}
+        {}
         <Modal
           animationType="slide"
           transparent={true}
@@ -312,7 +312,7 @@ export default function ProgressScreen() {
               </View>
 
               {showInputFields ? (
-                /* PHASE 1: USER INPUT FORM */
+                
                 <View>
                   <Text style={styles.chartLabel}>Confirm your details for Groq AI</Text>
                   <View style={styles.inputGroup}>
@@ -357,7 +357,7 @@ export default function ProgressScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                /* PHASE 2: AI RESULT OR LOADING */
+                
                 <ScrollView showsVerticalScrollIndicator={false}>
                   {aiLoading ? (
                     <View style={{ padding: 50, alignItems: 'center' }}>
@@ -380,7 +380,7 @@ export default function ProgressScreen() {
                         style={[styles.closeButton, { marginTop: 24 }]}
                         onPress={() => {
                           setAiModalVisible(false);
-                          setShowInputFields(true); // Reset for next time
+                          setShowInputFields(true); 
                         }}
                       >
                         <Text style={styles.closeButtonText}>Got it!</Text>
@@ -394,7 +394,7 @@ export default function ProgressScreen() {
         </Modal>
 
 
-        {/* My Goal Section */}
+        {}
         <Text style={styles.sectionTitle}>My Goal</Text>
 
         <View style={styles.goalContainer}>

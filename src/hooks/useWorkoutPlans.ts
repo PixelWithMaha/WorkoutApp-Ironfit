@@ -7,7 +7,7 @@ export interface WorkoutPlan {
   title: string;
   type: string;
   duration: string;
-  date: string; // YYYY-MM-DD
+  date: string; 
   completed: boolean;
 }
 
@@ -45,7 +45,7 @@ export function useWorkoutPlans() {
     const tempId = Math.random().toString(36).substring(7);
     const newLocalPlan = { ...plan, id: tempId };
     
-    // Add locally for instant UI update
+    
     setLocalPlans(prev => [...prev, newLocalPlan]);
 
     if (userId) {
@@ -71,7 +71,7 @@ export function useWorkoutPlans() {
     }
   };
 
-  // Combine Firestore plans with local unsynced plans
+  
   const combinedPlans = useMemo(() => {
     const firestoreIds = new Set(plans.map(p => `${p.date}-${p.title}`));
     const uniqueLocal = localPlans.filter(lp => !firestoreIds.has(`${lp.date}-${lp.title}`));

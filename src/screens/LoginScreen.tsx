@@ -13,7 +13,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
 
   const handleLogin = () => {
-    // Hardcoded auth logic
+    
     if (email.toLowerCase() === 'sarah@ironfit.com' && password === '123') {
       navigation.replace('MainTabs');
     } else {

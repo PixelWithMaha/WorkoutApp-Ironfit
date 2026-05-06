@@ -11,11 +11,17 @@ import { useNavigation } from '@react-navigation/native';
 
 const { height } = Dimensions.get('window');
 
-const defaultHealthData = [
+const defaultMonthlyData = [
   { month: 'Jan', value: 40 }, { month: 'Feb', value: 60 }, { month: 'Mar', value: 35 },
   { month: 'Apr', value: 85 }, { month: 'May', value: 55 }, { month: 'Jun', value: 95 },
   { month: 'Jul', value: 50 }, { month: 'Aug', value: 75 }, { month: 'Sep', value: 60 },
   { month: 'Oct', value: 90 }, { month: 'Nov', value: 45 }, { month: 'Dec', value: 70 },
+];
+
+const defaultWeeklyData = [
+  { month: 'Mon', value: 65 }, { month: 'Tue', value: 45 }, { month: 'Wed', value: 80 },
+  { month: 'Thu', value: 90 }, { month: 'Fri', value: 70 }, { month: 'Sat', value: 30 },
+  { month: 'Sun', value: 55 },
 ];
 
 export default function HomeScreen() {
@@ -23,6 +29,7 @@ export default function HomeScreen() {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [graphView, setGraphView] = useState<'Monthly' | 'Weekly'>('Monthly');
   const navigation = useNavigation<any>();
   const { currentSteps, currentCalories, notifications, clearNotifications } = useStepContext();
 
@@ -40,7 +47,7 @@ export default function HomeScreen() {
           setUserData({
             name: 'Sarah',
             metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
-            healthData: defaultHealthData,
+            healthData: defaultMonthlyData,
           });
         }
 
@@ -90,7 +97,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {/* Header */}
+        {}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.avatarPlaceholder} />
@@ -99,13 +106,12 @@ export default function HomeScreen() {
               <Text style={styles.subtitle}>Ready to crush your health goals today?</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.notificationButton} onPress={() => setShowNotifications(true)}>
+        <TouchableOpacity style={styles.notificationButton} onPress={() => setShowNotifications(true)}>
             <Feather name="bell" size={22} color="#1C1C1E" />
             {notifications.length > 0 && <View style={localStyles.badge} />}
           </TouchableOpacity>
         </View>
 
-        {/* Notification Hub Modal */}
         <Modal
           visible={showNotifications}
           transparent={true}
@@ -159,21 +165,23 @@ export default function HomeScreen() {
           </View>
         </Modal>
 
-        {/* Custom Bar Chart Section */}
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <View style={styles.chartTitleContainer}>
               <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={20} color={PRIMARY_COLOR} />
-              <Text style={styles.chartTitle}>Health Status</Text>
+              <Text style={styles.chartTitle}>{graphView} Health Status</Text>
             </View>
-            <TouchableOpacity style={styles.dropdown}>
-              <Text style={styles.dropdownText}>Monthly</Text>
-              <Feather name="chevron-down" size={14} color="#A0A0A0" />
+            <TouchableOpacity 
+              style={styles.dropdown}
+              onPress={() => setGraphView(graphView === 'Monthly' ? 'Weekly' : 'Monthly')}
+            >
+              <Text style={styles.dropdownText}>{graphView}</Text>
+              <Feather name="refresh-cw" size={12} color="#A0A0A0" style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.chartBars}>
-            {(userData?.healthData || defaultHealthData).map((item: any, index: number) => (
+            {(graphView === 'Monthly' ? (userData?.healthData || defaultMonthlyData) : defaultWeeklyData).map((item: any, index: number) => (
               <View key={index} style={styles.barGroup}>
                 <View style={styles.barTrack}>
                   <View style={[styles.barFill, { height: `${item.value}%` }]} />
@@ -184,7 +192,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Metrics Section */}
+        {}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Your Metrics</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Progress')}>
@@ -192,12 +200,33 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.metricsGrid}>
-          <MetricCard label="Water" value={metrics.water} unit="Liters" icon="water" color="#2196F3" />
-          <MetricCard label="Calories" value={currentCalories || metrics.calories} unit="Cal" icon="flame" color="#FFC107" />
-          <MetricCard label="Heart Rate" value={metrics.heartRate} unit="Bpm" icon="heart" color="#7E57C2" />
+          <MetricCard 
+            label="Water" 
+            value={metrics.water} 
+            unit="Liters" 
+            icon="water" 
+            color="#2196F3" 
+            onPress={() => navigation.navigate('Progress')}
+          />
+          <MetricCard 
+            label="Calories" 
+            value={currentCalories || metrics.calories} 
+            unit="Cal" 
+            icon="flame" 
+            color="#FFC107" 
+            onPress={() => navigation.navigate('Progress')}
+          />
+          <MetricCard 
+            label="Heart Rate" 
+            value={metrics.heartRate} 
+            unit="Bpm" 
+            icon="heart" 
+            color="#7E57C2" 
+            onPress={() => navigation.navigate('Progress')}
+          />
         </View>
 
-        {/* Suggested Workouts Section */}
+        {}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Suggested Workouts</Text>
           <TouchableOpacity onPress={() => navigation.navigate('AllWorkouts')}>

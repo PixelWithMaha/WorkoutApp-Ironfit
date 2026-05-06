@@ -11,7 +11,7 @@ export function useProfile() {
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const { currentSteps, syncStepsToFirestore } = useStepContext();
-  
+
   const [profileData, setProfileData] = useState({
     name: 'Sarah IronFit',
     email: 'sarah@ironfit.com',
@@ -29,7 +29,7 @@ export function useProfile() {
       try {
         const docRef = doc(db, 'users', userId);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
           const data = docSnap.data();
           setProfileData(prev => ({
@@ -76,7 +76,7 @@ export function useProfile() {
 
   const handleLogout = async () => {
     try {
-      // Sync steps one last time before logging out
+
       await syncStepsToFirestore(currentSteps);
       await auth.signOut();
       navigation.reset({
