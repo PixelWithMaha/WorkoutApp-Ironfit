@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  Modal, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+  Modal,
   TextInput,
   ActivityIndicator,
   Alert
@@ -25,7 +25,7 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newPlan, setNewPlan] = useState({ title: '', type: 'Running', duration: '30' });
-  
+
   const { plans, loading, addPlan, deletePlan } = useWorkoutPlans();
 
   const selectedDayPlans = useMemo(() => {
@@ -42,11 +42,11 @@ export default function CalendarScreen() {
         selectedColor: plan.date === selectedDate ? theme.primary : undefined
       };
     });
-    
+
     if (!marks[selectedDate]) {
       marks[selectedDate] = { selected: true, selectedColor: theme.primary };
     }
-    
+
     return marks;
   }, [plans, selectedDate]);
 
@@ -76,7 +76,7 @@ export default function CalendarScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
+
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>Workout Planner</Text>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={[styles.addButton, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
@@ -86,6 +86,7 @@ export default function CalendarScreen() {
 
         <View style={[styles.calendarCard, { backgroundColor: theme.card }]}>
           <Calendar
+            key={darkMode ? 'dark' : 'light'}
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
             markedDates={markedDates}
             theme={{
@@ -110,7 +111,7 @@ export default function CalendarScreen() {
           />
         </View>
 
-        {}
+        { }
         <View style={styles.plansHeader}>
           <Text style={[styles.plansTitle, { color: theme.text }]}>
             Plans for {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -165,16 +166,16 @@ export default function CalendarScreen() {
               placeholder="Workout Title (e.g. Morning Jog)"
               placeholderTextColor={theme.subtext}
               value={newPlan.title}
-              onChangeText={(text) => setNewPlan({...newPlan, title: text})}
+              onChangeText={(text) => setNewPlan({ ...newPlan, title: text })}
             />
 
             <Text style={[styles.inputLabel, { color: theme.text }]}>Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeSelector}>
               {WORKOUT_TYPES.map(type => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   key={type}
                   style={[styles.typeTab, { backgroundColor: theme.background }, newPlan.type === type && { backgroundColor: theme.primary }]}
-                  onPress={() => setNewPlan({...newPlan, type})}
+                  onPress={() => setNewPlan({ ...newPlan, type })}
                 >
                   <Text style={[styles.typeTabText, { color: theme.subtext }, newPlan.type === type && styles.activeTypeTabText]}>{type}</Text>
                 </TouchableOpacity>
@@ -188,7 +189,7 @@ export default function CalendarScreen() {
               placeholder="30"
               placeholderTextColor={theme.subtext}
               value={newPlan.duration}
-              onChangeText={(text) => setNewPlan({...newPlan, duration: text})}
+              onChangeText={(text) => setNewPlan({ ...newPlan, duration: text })}
             />
 
             <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }]} onPress={handleAddPlan}>
