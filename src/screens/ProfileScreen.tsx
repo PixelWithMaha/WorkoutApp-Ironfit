@@ -211,13 +211,7 @@ export default function ProfileScreen() {
             <Feather name="chevron-right" size={20} color={theme.subtext} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.border }]}>
-            <View style={[styles.menuIcon, { backgroundColor: theme.background }]}>
-              <Feather name="shield" size={20} color={theme.primary} />
-            </View>
-            <Text style={[styles.menuText, { color: theme.text }]}>Privacy Policy</Text>
-            <Feather name="chevron-right" size={20} color={theme.subtext} />
-          </TouchableOpacity>
+
 
           <TouchableOpacity style={[styles.menuItem, styles.logoutItem, { borderBottomWidth: 0 }]} onPress={handleLogout}>
             <View style={[styles.menuIcon, { backgroundColor: darkMode ? '#451a1a' : '#FEF2F2' }]}>
