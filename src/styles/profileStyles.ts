@@ -77,7 +77,6 @@ export const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: 'white',
     marginHorizontal: 20,
     paddingVertical: 20,
     borderRadius: 20,
@@ -156,7 +155,6 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   menuContainer: {
-    backgroundColor: 'white',
     marginHorizontal: 20,
     borderRadius: 20,
     padding: 10,
@@ -193,7 +191,6 @@ export const styles = StyleSheet.create({
     paddingTop: 20,
   },
   detailsContainer: {
-    backgroundColor: 'white',
     marginHorizontal: 20,
     borderRadius: 20,
     padding: 15,
@@ -215,7 +212,6 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,

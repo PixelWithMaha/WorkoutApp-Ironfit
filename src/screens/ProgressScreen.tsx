@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, TextInput, StatusBar } from 'react-native';
 import { Feather, Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart, ProgressChart } from 'react-native-chart-kit';
 import { colors } from '../theme/colors';
@@ -9,23 +9,18 @@ import { useHistory } from '../hooks/useHistory';
 import { useProfile } from '../hooks/useProfile';
 import { getFitnessPlan } from '../services/aiService';
 import Markdown from 'react-native-markdown-display';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
-
-const progressData = {
-  labels: ["Goal"], 
-  data: [0.6]
-};
 
 export default function ProgressScreen() {
   const { currentSteps, currentCalories, currentDistance } = useStepContext();
   const { weeklyData, loading: historyLoading } = useHistory();
   const { profileData } = useProfile();
+  const { theme, darkMode } = useTheme();
   const [summaryVisible, setSummaryVisible] = React.useState(false);
   const [aiModalVisible, setAiModalVisible] = React.useState(false);
   const [aiStepGoal, setAiStepGoal] = React.useState(10000);
-
-  
   const [aiLoading, setAiLoading] = React.useState(false);
   const [aiResult, setAiResult] = React.useState('');
   const [userInput, setUserInput] = React.useState({
@@ -34,9 +29,8 @@ export default function ProgressScreen() {
     weight: profileData.weight || '',
     height: profileData.height || ''
   });
-  const [showInputFields, setShowInputFields] = React.useState(true); 
+  const [showInputFields, setShowInputFields] = React.useState(true);
 
-  
   React.useEffect(() => {
     if (profileData) {
       setUserInput(prev => ({
@@ -48,9 +42,8 @@ export default function ProgressScreen() {
     }
   }, [profileData]);
 
-  
   const weight = parseFloat(profileData.weight) || 70;
-  const height = (parseFloat(profileData.height) / 100) || 1.7; 
+  const height = (parseFloat(profileData.height) / 100) || 1.7;
   const bmi = (weight / (height * height)).toFixed(1);
 
   let bmiCategory = "Normal";
@@ -58,7 +51,6 @@ export default function ProgressScreen() {
   else if (parseFloat(bmi) >= 25 && parseFloat(bmi) < 30) bmiCategory = "Overweight";
   else if (parseFloat(bmi) >= 30) bmiCategory = "Obese";
 
-  
   const progressPercent = Math.min((currentSteps / aiStepGoal), 1);
   const displayPercent = Math.round(progressPercent * 100);
 
@@ -67,13 +59,13 @@ export default function ProgressScreen() {
     data: [progressPercent]
   };
 
-  
   const chartData = {
     labels: weeklyData.length > 0 ? weeklyData.map(d => d.weekLabel.split(' ')[0]) : ["W1", "W2", "W3", "W4"],
     datasets: [{
       data: weeklyData.length > 0 ? weeklyData.map(d => d.distance) : [5, 8, 7, 12]
     }]
   };
+
   const handleGetAiPlan = async () => {
     if (!userInput.age || !userInput.goal || !userInput.weight || !userInput.height) {
       Alert.alert("Missing Info", "Please fill in all fields for a precise AI plan.");
@@ -103,19 +95,19 @@ export default function ProgressScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Progress</Text>
-          <TouchableOpacity style={styles.shareButton}>
-            <Feather name="share-2" size={24} color={colors.text} />
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Progress</Text>
+          <TouchableOpacity style={[styles.shareButton, { backgroundColor: theme.card }]}>
+            <Feather name="share-2" size={24} color={theme.text} />
           </TouchableOpacity>
         </View>
 
-        {}
-        <View style={[styles.stayActiveCard, { backgroundColor: colors.primaryLight }]}>
+        { }
+        <View style={[styles.stayActiveCard, { backgroundColor: darkMode ? theme.primary : colors.primaryLight }]}>
           <Text style={[styles.stayActiveTitle, { color: colors.white }]}>IronFit AI Coach</Text>
           <Text style={[styles.stayActiveDesc, { color: 'rgba(255,255,255,0.7)' }]}>Get personalized plans based on{'\n'}your current activity.</Text>
           <TouchableOpacity
@@ -130,73 +122,71 @@ export default function ProgressScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>This Week's Summary</Text>
-          <TouchableOpacity onPress={() => setSummaryVisible(true)}><Text style={styles.seeAll}>see more</Text></TouchableOpacity>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>This Week's Summary</Text>
+          <TouchableOpacity onPress={() => setSummaryVisible(true)}>
+            <Text style={[styles.seeAll, { color: theme.primary }]}>see more</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.summaryGrid}>
-          {}
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
             <View style={styles.summaryCardHeader}>
-              <Text style={styles.summaryCardTitle}>Steps</Text>
-              <Feather name="more-horizontal" size={16} color={colors.textSecondary} />
+              <Text style={[styles.summaryCardTitle, { color: theme.text }]}>Steps</Text>
+              <Feather name="more-horizontal" size={16} color={theme.subtext} />
             </View>
             <View style={styles.summaryCardBody}>
               <View>
-                <Text style={styles.summaryCardValue}>{currentSteps}</Text>
-                <Text style={styles.summaryCardUnit}>Steps</Text>
+                <Text style={[styles.summaryCardValue, { color: theme.text }]}>{currentSteps}</Text>
+                <Text style={[styles.summaryCardUnit, { color: theme.subtext }]}>Steps</Text>
               </View>
               <FontAwesome5 name="running" size={24} color={colors.primary} />
             </View>
           </View>
 
-          {}
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
             <View style={styles.summaryCardHeader}>
-              <Text style={styles.summaryCardTitle}>Calories</Text>
-              <Feather name="more-horizontal" size={16} color={colors.textSecondary} />
+              <Text style={[styles.summaryCardTitle, { color: theme.text }]}>Calories</Text>
+              <Feather name="more-horizontal" size={16} color={theme.subtext} />
             </View>
             <View style={styles.summaryCardBody}>
               <View>
-                <Text style={styles.summaryCardValue}>{currentCalories}</Text>
-                <Text style={styles.summaryCardUnit}>Kcal</Text>
+                <Text style={[styles.summaryCardValue, { color: theme.text }]}>{currentCalories}</Text>
+                <Text style={[styles.summaryCardUnit, { color: theme.subtext }]}>Kcal</Text>
               </View>
               <Ionicons name="flame" size={24} color={colors.calories} />
             </View>
           </View>
 
-          {}
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
             <View style={styles.summaryCardHeader}>
-              <Text style={styles.summaryCardTitle}>Distance</Text>
-              <Feather name="more-horizontal" size={16} color={colors.textSecondary} />
+              <Text style={[styles.summaryCardTitle, { color: theme.text }]}>Distance</Text>
+              <Feather name="more-horizontal" size={16} color={theme.subtext} />
             </View>
             <View style={styles.summaryCardBody}>
               <View>
-                <Text style={styles.summaryCardValue}>{currentDistance}</Text>
-                <Text style={styles.summaryCardUnit}>Km</Text>
+                <Text style={[styles.summaryCardValue, { color: theme.text }]}>{currentDistance}</Text>
+                <Text style={[styles.summaryCardUnit, { color: theme.subtext }]}>Km</Text>
               </View>
               <Ionicons name="location" size={24} color={colors.water} />
             </View>
           </View>
 
-          {}
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { backgroundColor: theme.card }]}>
             <View style={styles.summaryCardHeader}>
-              <Text style={styles.summaryCardTitle}>Intensity</Text>
-              <Feather name="more-horizontal" size={16} color={colors.textSecondary} />
+              <Text style={[styles.summaryCardTitle, { color: theme.text }]}>Intensity</Text>
+              <Feather name="more-horizontal" size={16} color={theme.subtext} />
             </View>
             <View style={styles.summaryCardBody}>
               <View>
-                <Text style={styles.summaryCardValue}>{currentSteps > 5000 ? 'High' : 'Low'}</Text>
-                <Text style={styles.summaryCardUnit}>Active</Text>
+                <Text style={[styles.summaryCardValue, { color: theme.text }]}>{currentSteps > 5000 ? 'High' : 'Low'}</Text>
+                <Text style={[styles.summaryCardUnit, { color: theme.subtext }]}>Active</Text>
               </View>
               <Ionicons name="stats-chart" size={24} color="#34C759" />
             </View>
           </View>
         </View>
 
-        {}
+        { }
         <Modal
           animationType="slide"
           transparent={true}
@@ -204,16 +194,16 @@ export default function ProgressScreen() {
           onRequestClose={() => setSummaryVisible(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Weekly Summary</Text>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Weekly Summary</Text>
                 <TouchableOpacity onPress={() => setSummaryVisible(false)}>
-                  <Feather name="x" size={24} color={colors.text} />
+                  <Feather name="x" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                <Text style={styles.chartLabel}>Distance Trends (Last 4 Weeks)</Text>
+                <Text style={[styles.chartLabel, { color: theme.subtext }]}>Distance Trends (Last 4 Weeks)</Text>
                 {historyLoading ? (
                   <ActivityIndicator color={colors.primary} />
                 ) : (
@@ -222,76 +212,75 @@ export default function ProgressScreen() {
                     width={width - 64}
                     height={200}
                     chartConfig={{
-                      backgroundColor: colors.white,
-                      backgroundGradientFrom: colors.white,
-                      backgroundGradientTo: colors.white,
+                      backgroundColor: theme.card,
+                      backgroundGradientFrom: theme.card,
+                      backgroundGradientTo: theme.card,
                       decimalPlaces: 1,
-                      color: (opacity = 1) => `rgba(18, 1, 92, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(142, 142, 147, ${opacity})`,
+                      color: (opacity = 1) => darkMode ? `rgba(47, 105, 255, ${opacity})` : `rgba(18, 1, 92, ${opacity})`,
+                      labelColor: (opacity = 1) => darkMode ? `rgba(248, 250, 252, ${opacity})` : `rgba(142, 142, 147, ${opacity})`,
                       style: { borderRadius: 16 },
-                      propsForDots: { r: "5", strokeWidth: "2", stroke: colors.primary }
+                      propsForDots: { r: "5", strokeWidth: "2", stroke: theme.primary }
                     }}
                     bezier
                     style={{ marginVertical: 8, borderRadius: 16, alignSelf: 'center' }}
                   />
                 )}
 
-                <Text style={[styles.chartLabel, { marginTop: 20 }]}>Metrics Overview</Text>
+                <Text style={[styles.chartLabel, { marginTop: 20, color: theme.subtext }]}>Metrics Overview</Text>
                 <View style={styles.modalMetricsGrid}>
-                  <View style={styles.modalMetricItem}>
-                    <Ionicons name="footsteps" size={24} color={colors.primary} />
+                  <View style={[styles.modalMetricItem, { backgroundColor: theme.background }]}>
+                    <Ionicons name="footsteps" size={24} color={theme.primary} />
                     <View style={styles.modalMetricText}>
-                      <Text style={styles.modalMetricLabel}>Total Steps</Text>
-                      <Text style={styles.modalMetricValue}>{currentSteps}</Text>
+                      <Text style={[styles.modalMetricLabel, { color: theme.subtext }]}>Total Steps</Text>
+                      <Text style={[styles.modalMetricValue, { color: theme.text }]}>{currentSteps}</Text>
                     </View>
                   </View>
-                  <View style={styles.modalMetricItem}>
+                  <View style={[styles.modalMetricItem, { backgroundColor: theme.background }]}>
                     <Ionicons name="flame" size={24} color={colors.calories} />
                     <View style={styles.modalMetricText}>
-                      <Text style={styles.modalMetricLabel}>Total Calories</Text>
-                      <Text style={styles.modalMetricValue}>{currentCalories} Kcal</Text>
+                      <Text style={[styles.modalMetricLabel, { color: theme.subtext }]}>Total Calories</Text>
+                      <Text style={[styles.modalMetricValue, { color: theme.text }]}>{currentCalories} Kcal</Text>
                     </View>
                   </View>
-                  <View style={styles.modalMetricItem}>
+                  <View style={[styles.modalMetricItem, { backgroundColor: theme.background }]}>
                     <Ionicons name="location" size={24} color={colors.water} />
                     <View style={styles.modalMetricText}>
-                      <Text style={styles.modalMetricLabel}>Total Distance</Text>
-                      <Text style={styles.modalMetricValue}>{currentDistance} Km</Text>
+                      <Text style={[styles.modalMetricLabel, { color: theme.subtext }]}>Total Distance</Text>
+                      <Text style={[styles.modalMetricValue, { color: theme.text }]}>{currentDistance} Km</Text>
                     </View>
                   </View>
-                  <View style={styles.modalMetricItem}>
+                  <View style={[styles.modalMetricItem, { backgroundColor: theme.background }]}>
                     <Ionicons name="heart" size={24} color={colors.heart} />
                     <View style={styles.modalMetricText}>
-                      <Text style={styles.modalMetricLabel}>Avg Heart Rate</Text>
-                      <Text style={styles.modalMetricValue}>76 Bpm</Text>
+                      <Text style={[styles.modalMetricLabel, { color: theme.subtext }]}>Avg Heart Rate</Text>
+                      <Text style={[styles.modalMetricValue, { color: theme.text }]}>76 Bpm</Text>
                     </View>
                   </View>
                 </View>
 
                 <View style={styles.summaryStatsRow}>
                   <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>Avg Steps</Text>
-                    <Text style={styles.statValue}>5.4K</Text>
+                    <Text style={[styles.statLabel, { color: theme.subtext }]}>Avg Steps</Text>
+                    <Text style={[styles.statValue, { color: theme.text }]}>5.4K</Text>
                   </View>
                   <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>Avg Dist</Text>
-                    <Text style={styles.statValue}>4.2 Km</Text>
+                    <Text style={[styles.statLabel, { color: theme.subtext }]}>Avg Dist</Text>
+                    <Text style={[styles.statValue, { color: theme.text }]}>4.2 Km</Text>
                   </View>
                   <View style={styles.statBox}>
-                    <Text style={styles.statLabel}>Active Days</Text>
-                    <Text style={styles.statValue}>5/7</Text>
+                    <Text style={[styles.statLabel, { color: theme.subtext }]}>Active Days</Text>
+                    <Text style={[styles.statValue, { color: theme.text }]}>5/7</Text>
                   </View>
                 </View>
 
-                <TouchableOpacity style={styles.closeButton} onPress={() => setSummaryVisible(false)}>
-                  <Text style={styles.closeButtonText}>Done</Text>
+                <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.primary }]} onPress={() => setSummaryVisible(false)}>
+                  <Text style={[styles.closeButtonText, { color: theme.text }]}>Done</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
           </View>
         </Modal>
 
-        {}
         <Modal
           animationType="slide"
           transparent={true}
@@ -299,35 +288,34 @@ export default function ProgressScreen() {
           onRequestClose={() => setAiModalVisible(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { minHeight: '50%', borderTopLeftRadius: 40, borderTopRightRadius: 40 }]}>
+            <View style={[styles.modalContent, { backgroundColor: theme.card, minHeight: '50%', borderTopLeftRadius: 40, borderTopRightRadius: 40 }]}>
 
               <View style={styles.modalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <MaterialCommunityIcons name="robot" size={28} color={colors.primary} />
-                  <Text style={[styles.modalTitle, { marginLeft: 10 }]}>IronFit AI Coach</Text>
+                  <MaterialCommunityIcons name="robot" size={28} color={theme.primary} />
+                  <Text style={[styles.modalTitle, { marginLeft: 10, color: theme.text }]}>IronFit AI Coach</Text>
                 </View>
-                <TouchableOpacity onPress={() => setAiModalVisible(false)} style={styles.modalCloseIcon}>
-                  <Feather name="x" size={24} color={colors.text} />
+                <TouchableOpacity onPress={() => setAiModalVisible(false)} style={[styles.modalCloseIcon, { backgroundColor: theme.background }]}>
+                  <Feather name="x" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
 
               {showInputFields ? (
-                
                 <View>
-                  <Text style={styles.chartLabel}>Confirm your details for Groq AI</Text>
+                  <Text style={[styles.chartLabel, { color: theme.subtext }]}>Confirm your details for Groq AI</Text>
                   <View style={styles.inputGroup}>
                     <TextInput
-                      style={[styles.input, { flex: 1, marginRight: 8 }]}
+                      style={[styles.input, { backgroundColor: theme.background, color: theme.text, flex: 1, marginRight: 8 }]}
                       placeholder="Age"
-                      placeholderTextColor={colors.textSecondary}
+                      placeholderTextColor={theme.subtext}
                       keyboardType="numeric"
                       value={userInput.age}
                       onChangeText={(text) => setUserInput({ ...userInput, age: text })}
                     />
                     <TextInput
-                      style={[styles.input, { flex: 1 }]}
+                      style={[styles.input, { backgroundColor: theme.background, color: theme.text, flex: 1 }]}
                       placeholder="Goal"
-                      placeholderTextColor={colors.textSecondary}
+                      placeholderTextColor={theme.subtext}
                       value={userInput.goal}
                       onChangeText={(text) => setUserInput({ ...userInput, goal: text })}
                     />
@@ -335,41 +323,44 @@ export default function ProgressScreen() {
 
                   <View style={[styles.inputGroup, { marginTop: 12 }]}>
                     <TextInput
-                      style={[styles.input, { flex: 1, marginRight: 8 }]}
+                      style={[styles.input, { backgroundColor: theme.background, color: theme.text, flex: 1, marginRight: 8 }]}
                       placeholder="Weight (kg)"
-                      placeholderTextColor={colors.textSecondary}
+                      placeholderTextColor={theme.subtext}
                       keyboardType="numeric"
                       value={userInput.weight}
                       onChangeText={(text) => setUserInput({ ...userInput, weight: text })}
                     />
                     <TextInput
-                      style={[styles.input, { flex: 1 }]}
+                      style={[styles.input, { backgroundColor: theme.background, color: theme.text, flex: 1 }]}
                       placeholder="Height (cm)"
-                      placeholderTextColor={colors.textSecondary}
+                      placeholderTextColor={theme.subtext}
                       keyboardType="numeric"
                       value={userInput.height}
                       onChangeText={(text) => setUserInput({ ...userInput, height: text })}
                     />
                   </View>
 
-                  <TouchableOpacity style={styles.saveButton} onPress={handleGetAiPlan}>
+                  <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }]} onPress={handleGetAiPlan}>
                     <Text style={styles.saveButtonText}>Generate Groq AI Plan</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                
                 <ScrollView showsVerticalScrollIndicator={false}>
                   {aiLoading ? (
                     <View style={{ padding: 50, alignItems: 'center' }}>
-                      <ActivityIndicator size="large" color={colors.primary} />
-                      <Text style={{ textAlign: 'center', marginTop: 16, color: colors.textSecondary }}>AI is analyzing your stats...</Text>
+                      <ActivityIndicator size="large" color={theme.primary} />
+                      <Text style={{ textAlign: 'center', marginTop: 16, color: theme.subtext }}>AI is analyzing your stats...</Text>
                     </View>
                   ) : (
                     <View>
-                      <Text style={styles.aiSectionTitle}>Your Personalized Plan</Text>
-                      <Markdown style={markdownStyles}>{aiResult}</Markdown>
+                      <Text style={[styles.aiSectionTitle, { color: theme.primary }]}>Your Personalized Plan</Text>
+                      <Markdown style={{
+                        body: { color: theme.text },
+                        heading1: { color: theme.text },
+                        heading2: { color: theme.text },
+                      }}>{aiResult}</Markdown>
 
-                      <View style={[styles.aiResultCard, { backgroundColor: colors.primary, marginTop: 24 }]}>
+                      <View style={[styles.aiResultCard, { backgroundColor: theme.primary, marginTop: 24 }]}>
                         <Text style={[styles.aiSectionTitle, { color: colors.white, marginBottom: 8 }]}>Goal Update</Text>
                         <Text style={styles.aiRecText}>
                           I've updated your daily goal to 12,000 steps based on your current progress. Let's hit it!
@@ -377,10 +368,10 @@ export default function ProgressScreen() {
                       </View>
 
                       <TouchableOpacity
-                        style={[styles.closeButton, { marginTop: 24 }]}
+                        style={[styles.closeButton, { marginTop: 24, backgroundColor: theme.primary }]}
                         onPress={() => {
                           setAiModalVisible(false);
-                          setShowInputFields(true); 
+                          setShowInputFields(true);
                         }}
                       >
                         <Text style={styles.closeButtonText}>Got it!</Text>
@@ -393,12 +384,10 @@ export default function ProgressScreen() {
           </View>
         </Modal>
 
-
-        {}
-        <Text style={styles.sectionTitle}>My Goal</Text>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>My Goal</Text>
 
         <View style={styles.goalContainer}>
-          <View style={styles.goalCard}>
+          <View style={[styles.goalCard, { backgroundColor: theme.card }]}>
             <View style={styles.progressRingContainer}>
               <ProgressChart
                 data={progressData}
@@ -407,20 +396,20 @@ export default function ProgressScreen() {
                 strokeWidth={16}
                 radius={50}
                 chartConfig={{
-                  backgroundColor: colors.white,
-                  backgroundGradientFrom: colors.white,
-                  backgroundGradientTo: colors.white,
-                  color: (opacity = 1) => `rgba(18, 1, 92, ${opacity})`,
+                  backgroundColor: theme.card,
+                  backgroundGradientFrom: theme.card,
+                  backgroundGradientTo: theme.card,
+                  color: (opacity = 1) => darkMode ? `rgba(47, 105, 255, ${opacity})` : `rgba(18, 1, 92, ${opacity})`,
                 }}
                 hideLegend={true}
               />
               <View style={styles.progressRingLabelContainer}>
-                <Text style={styles.progressRingValue}>{displayPercent}%</Text>
+                <Text style={[styles.progressRingValue, { color: theme.text }]}>{displayPercent}%</Text>
               </View>
             </View>
-            <Text style={styles.goalFooterDesc}>You're {displayPercent}% closer to your goal.{'\n'}Keep pushing the finish line is...</Text>
+            <Text style={[styles.goalFooterDesc, { color: theme.subtext }]}>You're {displayPercent}% closer to your goal.{'\n'}Keep pushing the finish line is...</Text>
           </View>
-          <View style={styles.emptyCard} />
+          <View style={[styles.emptyCard, { backgroundColor: theme.card }]} />
         </View>
 
         <View style={{ height: 100 }} />

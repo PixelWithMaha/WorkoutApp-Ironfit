@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, StatusBar } from 'react-native';
 import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
@@ -8,6 +8,7 @@ import MetricCard from '../components/MetricCard';
 import WorkoutCard from '../components/WorkoutCard';
 import { useStepContext } from '../context/StepContext';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 
 const { height } = Dimensions.get('window');
 
@@ -32,6 +33,7 @@ export default function HomeScreen() {
   const [graphView, setGraphView] = useState<'Monthly' | 'Weekly'>('Monthly');
   const navigation = useNavigation<any>();
   const { currentSteps, currentCalories, notifications, clearNotifications } = useStepContext();
+  const { theme, darkMode } = useTheme();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -85,7 +87,7 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={PRIMARY_COLOR} />
       </SafeAreaView>
     );
@@ -94,20 +96,23 @@ export default function HomeScreen() {
   const metrics = userData?.metrics || { water: 0, calories: 0, heartRate: 0 };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={styles.avatarPlaceholder} />
+            <View style={[styles.avatarPlaceholder, { backgroundColor: theme.iconBg }]} />
             <View>
-              <Text style={styles.greeting}>Hi, {userData?.name || 'User'}!</Text>
-              <Text style={styles.subtitle}>Ready to crush your health goals today?</Text>
+              <Text style={[styles.greeting, { color: theme.text }]}>Hi, {userData?.name || 'User'}!</Text>
+              <Text style={[styles.subtitle, { color: theme.subtext }]}>Ready to crush your health goals today?</Text>
             </View>
           </View>
-        <TouchableOpacity style={styles.notificationButton} onPress={() => setShowNotifications(true)}>
-            <Feather name="bell" size={22} color="#1C1C1E" />
+        <TouchableOpacity 
+          style={[styles.notificationButton, { backgroundColor: theme.card }]} 
+          onPress={() => setShowNotifications(true)}
+        >
+            <Feather name="bell" size={22} color={theme.text} />
             {notifications.length > 0 && <View style={localStyles.badge} />}
           </TouchableOpacity>
         </View>
@@ -119,36 +124,36 @@ export default function HomeScreen() {
           onRequestClose={() => setShowNotifications(false)}
         >
           <View style={localStyles.modalOverlay}>
-            <View style={localStyles.modalContent}>
+            <View style={[localStyles.modalContent, { backgroundColor: theme.card }]}>
               <View style={localStyles.modalHeader}>
-                <Text style={localStyles.modalTitle}>Notification Hub</Text>
+                <Text style={[localStyles.modalTitle, { color: theme.text }]}>Notification Hub</Text>
                 <TouchableOpacity onPress={() => setShowNotifications(false)}>
-                  <Ionicons name="close-circle" size={28} color="#94A3B8" />
+                  <Ionicons name="close-circle" size={28} color={theme.subtext} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: height * 0.6 }}>
                 {notifications.length === 0 ? (
                   <View style={localStyles.emptyContainer}>
-                    <Ionicons name="notifications-off-outline" size={60} color="#CBD5E1" />
-                    <Text style={localStyles.emptyText}>No notifications yet.</Text>
-                    <Text style={localStyles.emptySub}>We'll alert you about goals & workouts!</Text>
+                    <Ionicons name="notifications-off-outline" size={60} color={theme.border} />
+                    <Text style={[localStyles.emptyText, { color: theme.text }]}>No notifications yet.</Text>
+                    <Text style={[localStyles.emptySub, { color: theme.subtext }]}>We'll alert you about goals & workouts!</Text>
                   </View>
                 ) : (
                   notifications.map((notif) => {
                     const iconConfig = getNotifIcon(notif.type);
                     const IconComponent = iconConfig.iconSet;
                     return (
-                      <View key={notif.id} style={localStyles.notifCard}>
+                      <View key={notif.id} style={[localStyles.notifCard, { backgroundColor: theme.background }]}>
                         <View style={[localStyles.iconCircle, { backgroundColor: iconConfig.color + '15' }]}>
                           <IconComponent name={iconConfig.name as any} size={20} color={iconConfig.color} />
                         </View>
                         <View style={{ flex: 1 }}>
                           <View style={localStyles.notifTextRow}>
-                            <Text style={localStyles.notifTitle}>{notif.title}</Text>
+                            <Text style={[localStyles.notifTitle, { color: theme.text }]}>{notif.title}</Text>
                             <Text style={localStyles.notifTime}>{notif.time}</Text>
                           </View>
-                          <Text style={localStyles.notifMessage}>{notif.message}</Text>
+                          <Text style={[localStyles.notifMessage, { color: theme.subtext }]}>{notif.message}</Text>
                         </View>
                       </View>
                     );
@@ -157,46 +162,48 @@ export default function HomeScreen() {
               </ScrollView>
 
               {notifications.length > 0 && (
-                <TouchableOpacity style={localStyles.clearButton} onPress={() => { clearNotifications(); setShowNotifications(false); }}>
-                  <Text style={localStyles.clearButtonText}>Clear All</Text>
+                <TouchableOpacity 
+                  style={[localStyles.clearButton, { backgroundColor: theme.border }]} 
+                  onPress={() => { clearNotifications(); setShowNotifications(false); }}
+                >
+                  <Text style={[localStyles.clearButtonText, { color: theme.text }]}>Clear All</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
         </Modal>
 
-        <View style={styles.chartCard}>
+        <View style={[styles.chartCard, { backgroundColor: theme.card }]}>
           <View style={styles.chartHeader}>
             <View style={styles.chartTitleContainer}>
-              <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={20} color={PRIMARY_COLOR} />
-              <Text style={styles.chartTitle}>{graphView} Health Status</Text>
+              <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={20} color={theme.primary} />
+              <Text style={[styles.chartTitle, { color: theme.text }]}>{graphView} Health Status</Text>
             </View>
             <TouchableOpacity 
               style={styles.dropdown}
               onPress={() => setGraphView(graphView === 'Monthly' ? 'Weekly' : 'Monthly')}
             >
-              <Text style={styles.dropdownText}>{graphView}</Text>
-              <Feather name="refresh-cw" size={12} color="#A0A0A0" style={{ marginLeft: 4 }} />
+              <Text style={[styles.dropdownText, { color: theme.subtext }]}>{graphView}</Text>
+              <Feather name="refresh-cw" size={12} color={theme.subtext} style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.chartBars}>
             {(graphView === 'Monthly' ? (userData?.healthData || defaultMonthlyData) : defaultWeeklyData).map((item: any, index: number) => (
               <View key={index} style={styles.barGroup}>
-                <View style={styles.barTrack}>
-                  <View style={[styles.barFill, { height: `${item.value}%` }]} />
+                <View style={[styles.barTrack, { backgroundColor: theme.iconBg }]}>
+                  <View style={[styles.barFill, { height: `${item.value}%`, backgroundColor: theme.primary }]} />
                 </View>
-                <Text style={styles.barLabel}>{item.month}</Text>
+                <Text style={[styles.barLabel, { color: theme.subtext }]}>{item.month}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your Metrics</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Your Metrics</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Progress')}>
-            <Text style={styles.seeAll}>see all</Text>
+            <Text style={[styles.seeAll, { color: theme.subtext }]}>see all</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.metricsGrid}>
@@ -205,7 +212,8 @@ export default function HomeScreen() {
             value={metrics.water} 
             unit="Liters" 
             icon="water" 
-            color="#2196F3" 
+            color={darkMode ? theme.primary : "#2196F3"} 
+            theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
           <MetricCard 
@@ -213,7 +221,8 @@ export default function HomeScreen() {
             value={currentCalories || metrics.calories} 
             unit="Cal" 
             icon="flame" 
-            color="#FFC107" 
+            color={darkMode ? theme.primary : "#FFC107"} 
+            theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
           <MetricCard 
@@ -221,16 +230,17 @@ export default function HomeScreen() {
             value={metrics.heartRate} 
             unit="Bpm" 
             icon="heart" 
-            color="#7E57C2" 
+            color={darkMode ? theme.primary : "#7E57C2"} 
+            theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
         </View>
 
         {}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Suggested Workouts</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Suggested Workouts</Text>
           <TouchableOpacity onPress={() => navigation.navigate('AllWorkouts')}>
-            <Text style={styles.seeAll}>see all</Text>
+            <Text style={[styles.seeAll, { color: theme.primary }]}>see all</Text>
           </TouchableOpacity>
         </View>
 
