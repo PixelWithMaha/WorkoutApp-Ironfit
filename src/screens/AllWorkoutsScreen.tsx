@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } fr
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
+import { StatusBar } from 'react-native';
 
 const workouts = [
   { id: '1', title: 'Running', icon: 'run', type: 'material', desc: 'High intensity cardio' },
@@ -12,32 +14,34 @@ const workouts = [
 
 export default function AllWorkoutsScreen() {
   const navigation = useNavigation<any>();
+  const { theme, darkMode } = useTheme();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
+      <View style={[styles.header, { borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="arrow-left" size={24} color={colors.text} />
+          <Feather name="arrow-left" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>All Workouts</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>All Workouts</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {workouts.map((workout) => (
-          <TouchableOpacity
-            key={workout.id}
-            style={styles.card}
+          <TouchableOpacity 
+            key={workout.id} 
+            style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={() => navigation.navigate('WorkoutDetail', { workout })}
           >
-            <View style={styles.iconContainer}>
-              <MaterialCommunityIcons name={workout.icon as any} size={32} color={colors.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: theme.background }]}>
+              <MaterialCommunityIcons name={workout.icon as any} size={32} color={theme.primary} />
             </View>
             <View style={styles.textContainer}>
-              <Text style={styles.title}>{workout.title}</Text>
-              <Text style={styles.desc}>{workout.desc}</Text>
+              <Text style={[styles.title, { color: theme.text }]}>{workout.title}</Text>
+              <Text style={[styles.desc, { color: theme.subtext }]}>{workout.desc}</Text>
             </View>
-            <Feather name="chevron-right" size={20} color={colors.textSecondary} />
+            <Feather name="chevron-right" size={20} color={theme.subtext} />
           </TouchableOpacity>
         ))}
       </ScrollView>

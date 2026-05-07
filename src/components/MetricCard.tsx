@@ -9,20 +9,21 @@ interface MetricCardProps {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
   onPress?: () => void;
+  theme?: any;
 }
 
-const MetricCard = ({ label, value, unit, icon, color, onPress }: MetricCardProps) => (
+const MetricCard = ({ label, value, unit, icon, color, onPress, theme }: MetricCardProps) => (
   <TouchableOpacity 
-    style={styles.metricCard} 
+    style={[styles.metricCard, theme && { backgroundColor: theme.card }]} 
     onPress={onPress}
     activeOpacity={0.7}
   >
     <View style={styles.metricCardTop}>
-      <Text style={styles.metricLabel}>{label}</Text>
+      <Text style={[styles.metricLabel, theme && { color: theme.subtext }]}>{label}</Text>
       <Ionicons name={icon} size={16} color={color} />
     </View>
-    <Text style={styles.metricValueText}>
-      {value} <Text style={styles.metricUnitText}>{unit}</Text>
+    <Text style={[styles.metricValueText, theme && { color: theme.text }]}>
+      {value} <Text style={[styles.metricUnitText, theme && { color: theme.subtext }]}>{unit}</Text>
     </Text>
   </TouchableOpacity>
 );

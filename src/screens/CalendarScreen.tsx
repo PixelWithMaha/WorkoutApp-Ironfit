@@ -15,50 +15,48 @@ import { Calendar } from 'react-native-calendars';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useWorkoutPlans, WorkoutPlan } from '../hooks/useWorkoutPlans';
+import { useTheme } from '../context/ThemeContext';
+import { StatusBar } from 'react-native';
 
 const WORKOUT_TYPES = ['Running', 'Cycling', 'Weights', 'Yoga', 'HIIT'];
 
 export default function CalendarScreen() {
+  const { theme, darkMode } = useTheme();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [modalVisible, setModalVisible] = useState(false);
   const [newPlan, setNewPlan] = useState({ title: '', type: 'Running', duration: '30' });
   
   const { plans, loading, addPlan, deletePlan } = useWorkoutPlans();
 
-  
   const selectedDayPlans = useMemo(() => {
     return plans.filter(plan => plan.date === selectedDate);
   }, [plans, selectedDate]);
 
-  
   const markedDates = useMemo(() => {
     const marks: any = {};
     plans.forEach(plan => {
       marks[plan.date] = {
         marked: true,
-        dotColor: colors.primary,
+        dotColor: theme.primary,
         selected: plan.date === selectedDate,
-        selectedColor: plan.date === selectedDate ? colors.primary : undefined
+        selectedColor: plan.date === selectedDate ? theme.primary : undefined
       };
     });
     
-    
     if (!marks[selectedDate]) {
-      marks[selectedDate] = { selected: true, selectedColor: colors.primary };
+      marks[selectedDate] = { selected: true, selectedColor: theme.primary };
     }
     
     return marks;
   }, [plans, selectedDate]);
 
   const handleAddPlan = async () => {
-    console.log("[CalendarScreen] handleAddPlan triggered");
     if (!newPlan.title) {
       Alert.alert("Error", "Please enter a title for your workout.");
       return;
     }
 
     try {
-      console.log("[CalendarScreen] Calling addPlan...");
       await addPlan({
         title: newPlan.title,
         type: newPlan.type,
@@ -66,7 +64,6 @@ export default function CalendarScreen() {
         date: selectedDate,
         completed: false
       });
-      console.log("[CalendarScreen] addPlan finished");
     } catch (error) {
       console.error("[CalendarScreen] Error in handleAddPlan:", error);
     } finally {
@@ -76,52 +73,59 @@ export default function CalendarScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Workout Planner</Text>
-          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addButton}>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Workout Planner</Text>
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={[styles.addButton, { backgroundColor: theme.primary, shadowColor: theme.primary }]}>
             <Feather name="plus" size={24} color={colors.white} />
           </TouchableOpacity>
         </View>
 
-        {}
-        <View style={styles.calendarCard}>
+        <View style={[styles.calendarCard, { backgroundColor: theme.card }]}>
           <Calendar
             onDayPress={(day: any) => setSelectedDate(day.dateString)}
             markedDates={markedDates}
             theme={{
-              todayTextColor: colors.primary,
-              arrowColor: colors.primary,
-              monthTextColor: colors.primary,
+              backgroundColor: theme.card,
+              calendarBackground: theme.card,
+              textSectionTitleColor: theme.subtext,
+              selectedDayBackgroundColor: theme.primary,
+              selectedDayTextColor: colors.white,
+              todayTextColor: theme.primary,
+              dayTextColor: theme.text,
+              textDisabledColor: theme.border,
+              dotColor: theme.primary,
+              selectedDotColor: colors.white,
+              arrowColor: theme.primary,
+              disabledArrowColor: theme.border,
+              monthTextColor: theme.text,
               indicatorColor: colors.primary,
               textDayFontWeight: '500',
               textMonthFontWeight: 'bold',
               textDayHeaderFontWeight: 'bold',
-              selectedDayBackgroundColor: colors.primary,
-              selectedDayTextColor: colors.white,
             }}
           />
         </View>
 
         {}
         <View style={styles.plansHeader}>
-          <Text style={styles.plansTitle}>
+          <Text style={[styles.plansTitle, { color: theme.text }]}>
             Plans for {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </Text>
         </View>
 
         {loading ? (
-          <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.primary} size="large" style={{ marginTop: 40 }} />
         ) : selectedDayPlans.length > 0 ? (
           selectedDayPlans.map((plan) => (
-            <View key={plan.id} style={styles.planCard}>
-              <View style={[styles.typeIndicator, { backgroundColor: colors.primaryLight }]} />
+            <View key={plan.id} style={[styles.planCard, { backgroundColor: theme.card }]}>
+              <View style={[styles.typeIndicator, { backgroundColor: theme.primary }]} />
               <View style={styles.planInfo}>
-                <Text style={styles.planTitle}>{plan.title}</Text>
-                <Text style={styles.planType}>{plan.type} • {plan.duration}</Text>
+                <Text style={[styles.planTitle, { color: theme.text }]}>{plan.title}</Text>
+                <Text style={[styles.planType, { color: theme.subtext }]}>{plan.type} • {plan.duration}</Text>
               </View>
               <TouchableOpacity onPress={() => deletePlan(plan.id)} style={styles.deleteButton}>
                 <Feather name="trash-2" size={18} color={colors.error} />
@@ -130,10 +134,10 @@ export default function CalendarScreen() {
           ))
         ) : (
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="calendar-blank" size={64} color="#E5E5EA" />
-            <Text style={styles.emptyText}>No workouts planned for this day.</Text>
-            <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.emptyAddButton}>
-              <Text style={styles.emptyAddText}>Schedule One</Text>
+            <MaterialCommunityIcons name="calendar-blank" size={64} color={theme.border} />
+            <Text style={[styles.emptyText, { color: theme.subtext }]}>No workouts planned for this day.</Text>
+            <TouchableOpacity onPress={() => setModalVisible(true)} style={[styles.emptyAddButton, { borderColor: theme.primary }]}>
+              <Text style={[styles.emptyAddText, { color: theme.primary }]}>Schedule One</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -141,7 +145,6 @@ export default function CalendarScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {}
       <Modal
         animationType="slide"
         transparent={true}
@@ -149,44 +152,46 @@ export default function CalendarScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Plan Workout</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Plan Workout</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Feather name="x" size={24} color={colors.text} />
+                <Feather name="x" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
               placeholder="Workout Title (e.g. Morning Jog)"
+              placeholderTextColor={theme.subtext}
               value={newPlan.title}
               onChangeText={(text) => setNewPlan({...newPlan, title: text})}
             />
 
-            <Text style={styles.inputLabel}>Type</Text>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>Type</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeSelector}>
               {WORKOUT_TYPES.map(type => (
                 <TouchableOpacity 
                   key={type}
-                  style={[styles.typeTab, newPlan.type === type && styles.activeTypeTab]}
+                  style={[styles.typeTab, { backgroundColor: theme.background }, newPlan.type === type && { backgroundColor: theme.primary }]}
                   onPress={() => setNewPlan({...newPlan, type})}
                 >
-                  <Text style={[styles.typeTabText, newPlan.type === type && styles.activeTypeTabText]}>{type}</Text>
+                  <Text style={[styles.typeTabText, { color: theme.subtext }, newPlan.type === type && styles.activeTypeTabText]}>{type}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            <Text style={styles.inputLabel}>Duration (minutes)</Text>
+            <Text style={[styles.inputLabel, { color: theme.text }]}>Duration (minutes)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
               keyboardType="numeric"
               placeholder="30"
+              placeholderTextColor={theme.subtext}
               value={newPlan.duration}
               onChangeText={(text) => setNewPlan({...newPlan, duration: text})}
             />
 
-            <TouchableOpacity style={styles.saveButton} onPress={handleAddPlan}>
+            <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.primary }]} onPress={handleAddPlan}>
               <Text style={styles.saveButtonText}>Add to Calendar</Text>
             </TouchableOpacity>
           </View>

@@ -18,12 +18,15 @@ import { colors } from '../theme/colors';
 import { useStepContext } from '../context/StepContext';
 import { useTrips } from '../hooks/useTrips';
 import { useHistory } from '../hooks/useHistory';
+import { useTheme } from '../context/ThemeContext';
+import { StatusBar } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 const TABS = ['1 Week', '2 Week', '3 Week', '1 Month'];
 
 export default function HistoryScreen() {
+  const { theme, darkMode } = useTheme();
   const [activeTab, setActiveTab] = useState('1 Week');
   const { currentSteps, currentDistance, manualSync } = useStepContext();
   const { trips, addTrip, loading: tripsLoading } = useTrips();
@@ -48,7 +51,6 @@ export default function HistoryScreen() {
 
   const handleAddTrip = async () => {
     if (newTrip.title && newTrip.distance) {
-      
       await addTrip({
         title: newTrip.title,
         distance: parseFloat(newTrip.distance),
@@ -61,8 +63,6 @@ export default function HistoryScreen() {
     }
   };
 
-
-  
   const getStatsForTab = () => {
     switch (activeTab) {
       case '1 Week':
@@ -87,127 +87,103 @@ export default function HistoryScreen() {
   const stats = getStatsForTab();
   const distPerHour = (parseFloat(stats.dist.toString()) / 1.5).toFixed(2);
 
-
-  
   const getIntensity = (steps: number) => {
     if (steps < 2000) return { label: 'Low', color: '#F97316' }; 
     if (steps < 7000) return { label: 'Normal', color: '#22C55E' }; 
-    return { label: 'High', color: '#3B82F6' }; 
+    return { label: 'High', color: theme.primary }; 
   };
   const intensity = getIntensity(currentSteps);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Step</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Step</Text>
           <View style={{ flexDirection: 'row' }}>
-            <TouchableOpacity onPress={handleManualSync} style={[styles.notificationButton, { marginRight: 12 }]}>
-              <MaterialCommunityIcons name="watch-variant" size={24} color={colors.primary} />
+            <TouchableOpacity onPress={handleManualSync} style={[styles.notificationButton, { marginRight: 12, backgroundColor: theme.card }]}>
+              <MaterialCommunityIcons name="watch-variant" size={24} color={theme.primary} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleSeed} style={styles.notificationButton}>
-              <Feather name="database" size={24} color={colors.primary} />
+            <TouchableOpacity onPress={handleSeed} style={[styles.notificationButton, { backgroundColor: theme.card }]}>
+              <Feather name="database" size={24} color={theme.primary} />
             </TouchableOpacity>
           </View>
         </View>
 
         {}
-        <Text style={styles.activitySubtitle}>Walk & Run Activity</Text>
+        <Text style={[styles.activitySubtitle, { color: theme.subtext }]}>Walk & Run Activity</Text>
         <View style={styles.stepsContainer}>
-          <FontAwesome5 name="running" size={32} color={colors.primary} style={styles.runIcon} />
-          <Text style={styles.stepCount}>
+          <FontAwesome5 name="running" size={32} color={theme.primary} style={styles.runIcon} />
+          <Text style={[styles.stepCount, { color: theme.text }]}>
             {currentSteps}
           </Text>
-          <Text style={styles.stepLabel}>Steps</Text>
+          <Text style={[styles.stepLabel, { color: theme.subtext }]}>Steps</Text>
         </View>
 
-        {}
-        <View style={styles.tabsContainer}>
+        <View style={[styles.tabsContainer, { backgroundColor: theme.card }]}>
           {TABS.map((tab) => (
             <TouchableOpacity
               key={tab}
-              style={[styles.tab, activeTab === tab && styles.activeTab]}
+              style={[styles.tab, activeTab === tab && { backgroundColor: theme.primary }]}
               onPress={() => setActiveTab(tab)}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
+              <Text style={[styles.tabText, { color: activeTab === tab ? colors.white : theme.subtext }]}>{tab}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {}
-        <View style={styles.increaseCard}>
-          <View style={styles.increaseIconContainer}>
+        <View style={[styles.increaseCard, { backgroundColor: theme.card }]}>
+          <View style={[styles.increaseIconContainer, { backgroundColor: theme.primary }]}>
             <Feather name="trending-up" size={24} color={colors.white} />
           </View>
           <View style={styles.increaseTextContainer}>
-            <Text style={styles.increaseTitle}>Distance Increase {increase}%</Text>
-            <Text style={styles.increaseSubtitle}>Real-time: {currentDistance} Km</Text>
+            <Text style={[styles.increaseTitle, { color: theme.text }]}>Distance Increase {increase}%</Text>
+            <Text style={[styles.increaseSubtitle, { color: theme.subtext }]}>Real-time: {currentDistance} Km</Text>
           </View>
           <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addTripButton}>
-            <Feather name="plus-circle" size={28} color={colors.primary} />
+            <Feather name="plus-circle" size={28} color={theme.primary} />
           </TouchableOpacity>
         </View>
 
-        {}
         <View style={styles.metricsRow}>
           <View style={styles.metricItem}>
-            <Text style={styles.metricItemLabel}>Dist ({activeTab})</Text>
-            <Text style={styles.metricItemValue}>{stats.dist} <Text style={styles.metricItemUnit}>Km</Text></Text>
+            <Text style={[styles.metricItemLabel, { color: theme.subtext }]}>Dist ({activeTab})</Text>
+            <Text style={[styles.metricItemValue, { color: theme.text }]}>{stats.dist} <Text style={[styles.metricItemUnit, { color: theme.subtext }]}>Km</Text></Text>
           </View>
           <View style={styles.metricItem}>
-            <Text style={styles.metricItemLabel}>Dist / hr</Text>
-            <Text style={styles.metricItemValue}>{distPerHour} <Text style={styles.metricItemUnit}>Km</Text></Text>
+            <Text style={[styles.metricItemLabel, { color: theme.subtext }]}>Dist / hr</Text>
+            <Text style={[styles.metricItemValue, { color: theme.text }]}>{distPerHour} <Text style={[styles.metricItemUnit, { color: theme.subtext }]}>Km</Text></Text>
           </View>
           <View style={styles.metricItem}>
-            <Text style={styles.metricItemLabel}>Intensity</Text>
+            <Text style={[styles.metricItemLabel, { color: theme.subtext }]}>Intensity</Text>
             <Text style={[styles.metricItemValue, { color: intensity.color }]}>{intensity.label}</Text>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
-        {}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentActivities}>
           {tripsLoading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginLeft: 20 }} />
+            <ActivityIndicator color={theme.primary} style={{ marginLeft: 20 }} />
           ) : trips.length > 0 ? (
-            trips.map(trip => {
-              const getTripImage = (title: string) => {
-                const lowerTitle = title.toLowerCase();
-                if (lowerTitle.includes('gym')) {
-                  return { uri: 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?q=80&w=500' };
-                }
-                if (lowerTitle.includes('morning')) {
-                  return { uri: 'https://images.unsplash.com/photo-1444464666168-49d633b867ad?q=80&w=500' };
-                }
-                if (lowerTitle.includes('night')) {
-                  return { uri: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=500' };
-                }
-                return { uri: 'https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=500' };
-              };
-
-              return (
-                <View key={trip.id} style={styles.activityCard}>
-                  <Image 
-                    source={getTripImage(trip.title)} 
-                    style={styles.activityIconCircle} 
-                  />
-                  <Text style={styles.activityTime}>{trip.timeRange}</Text>
-                  <Text style={styles.activityName}>{trip.title}</Text>
-                  <Text style={styles.activityDetails}>AVG {trip.avgBpm} BPM - {trip.distance} Km</Text>
+            trips.map(trip => (
+              <View key={trip.id} style={styles.activityCard}>
+                <View style={[styles.activityIconCircle, { backgroundColor: theme.card }]}>
+                  <MaterialCommunityIcons name="map-marker-distance" size={24} color={theme.primary} />
                 </View>
-              );
-            })
+                <Text style={[styles.activityTime, { color: theme.subtext }]}>{trip.timeRange}</Text>
+                <Text style={[styles.activityName, { color: theme.text }]}>{trip.title}</Text>
+                <Text style={[styles.activityDetails, { color: theme.subtext }]}>AVG {trip.avgBpm} BPM - {trip.distance} Km</Text>
+              </View>
+            ))
           ) : (
             <View style={[styles.activityCard, { justifyContent: 'center' }]}>
-              <Text style={styles.activityName}>No trips logged yet</Text>
+              <Text style={[styles.activityName, { color: theme.text }]}>No trips logged yet</Text>
             </View>
           )}
         </ScrollView>
 
-        {}
         <Modal
           animationType="slide"
           transparent={true}
@@ -215,34 +191,37 @@ export default function HistoryScreen() {
           onRequestClose={() => setModalVisible(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Log a Commute / Trip</Text>
+            <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Log a Commute / Trip</Text>
 
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                 placeholder="Trip Title (e.g. Office Commute)"
+                placeholderTextColor={theme.subtext}
                 value={newTrip.title}
                 onChangeText={(text) => setNewTrip({ ...newTrip, title: text })}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                 placeholder="Distance (Km)"
+                placeholderTextColor={theme.subtext}
                 keyboardType="numeric"
                 value={newTrip.distance}
                 onChangeText={(text) => setNewTrip({ ...newTrip, distance: text })}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                 placeholder="Time Range (e.g. 9 AM - 10 AM)"
+                placeholderTextColor={theme.subtext}
                 value={newTrip.timeRange}
                 onChangeText={(text) => setNewTrip({ ...newTrip, timeRange: text })}
               />
 
               <View style={styles.modalButtons}>
-                <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => setModalVisible(false)}>
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                <TouchableOpacity style={[styles.button, styles.cancelButton, { backgroundColor: theme.background }]} onPress={() => setModalVisible(false)}>
+                  <Text style={[styles.buttonText, { color: theme.text }]}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleAddTrip}>
+                <TouchableOpacity style={[styles.button, styles.saveButton, { backgroundColor: theme.primary }]} onPress={handleAddTrip}>
                   <Text style={styles.buttonText}>Log Trip</Text>
                 </TouchableOpacity>
               </View>
@@ -250,21 +229,20 @@ export default function HistoryScreen() {
           </View>
         </Modal>
 
-        {}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Highlights</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>See All</Text></TouchableOpacity>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Highlights</Text>
+          <TouchableOpacity><Text style={[styles.seeAll, { color: theme.primary }]}>See All</Text></TouchableOpacity>
         </View>
-        <Text style={styles.highlightsDesc}>
+        <Text style={[styles.highlightsDesc, { color: theme.subtext }]}>
           Your daily distance is improving, great job!{'\n'}
           Compared to last week, you've increased your distance by {increase}%!
         </Text>
 
-        <View style={[styles.increaseCard, { marginTop: 16, marginBottom: 100, backgroundColor: colors.white }]}>
+        <View style={[styles.increaseCard, { marginTop: 16, marginBottom: 100, backgroundColor: theme.card }]}>
           <View>
-            <Text style={[styles.increaseTitle, { fontSize: 24, color: colors.text }]}>3.2 <Text style={{ fontSize: 14, color: colors.textSecondary, fontWeight: 'normal' }}>Km/day</Text></Text>
+            <Text style={[styles.increaseTitle, { fontSize: 24, color: theme.text }]}>3.2 <Text style={{ fontSize: 14, color: theme.subtext, fontWeight: 'normal' }}>Km/day</Text></Text>
           </View>
-          <View style={[styles.tab, styles.activeTab, { paddingVertical: 8, paddingHorizontal: 16 }]}>
+          <View style={[styles.tab, { backgroundColor: theme.primary, paddingVertical: 8, paddingHorizontal: 16 }]}>
             <Text style={styles.activeTabText}>11 - 17 September</Text>
           </View>
         </View>

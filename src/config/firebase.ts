@@ -1,7 +1,9 @@
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { initializeApp, getApp, getApps } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+// @ts-ignore
+import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyD7taOi8pUBLjd-BlE-n4SKkC0zFPCWKoU",
@@ -13,15 +15,30 @@ const firebaseConfig = {
   measurementId: "G-95L0WXLXWG"
 };
 
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
+export const analytics = isSupported().then(supported => {
+  if (supported) {
+    return getAnalytics(app);
+  }
+  return null;
+});
 
 if (app) {
   console.log("Firebase initialized successfully for Project:", firebaseConfig.projectId);
-} else {
-  console.error("Firebase initialization failed.");
 }
 
 export const db = getFirestore(app);
-export const auth = getAuth(app);
+
+// Auth initialization
+let firebaseAuth;
+try {
+  firebaseAuth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
+} catch (e) {
+  // If already initialized, use getAuth
+  firebaseAuth = getAuth(app);
+}
+
+export const auth = firebaseAuth;
