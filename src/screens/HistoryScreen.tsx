@@ -10,7 +10,8 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
-  Alert
+  Alert,
+  Image
 } from 'react-native';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -402,8 +403,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   activityCard: {
-    width: width * 0.6,
-    marginRight: 16,
+    width: 150,
+    marginRight: 20,
   },
   activityMapPlaceholder: {
     height: 120,
@@ -451,8 +452,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   activityIconCircle: {
-    width: 120,
-    height: 120,
+    width: 150,
+    height: 150,
     borderRadius: 16,
     backgroundColor: '#F0F9FF',
     justifyContent: 'center',
@@ -503,7 +504,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#E2E8F0',
     marginRight: 10,
   },
   saveButton: {
@@ -513,5 +514,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.white,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#475569',
   },
 });
