@@ -42,8 +42,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
-      
-      // Secret signal: if email is admin@ironfit.com, go to Admin Panel
+
       if (email.trim().toLowerCase() === 'admin@ironfit.com') {
         navigation.replace('AdminPanel');
       } else {
