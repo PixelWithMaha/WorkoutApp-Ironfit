@@ -1,20 +1,45 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import { useTheme } from '../context/ThemeContext';
-import { StatusBar } from 'react-native';
+import { db } from '../config/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
-const workouts = [
-  { id: '1', title: 'Running', icon: 'run', type: 'material', desc: 'High intensity cardio' },
-  { id: '2', title: 'Walking', icon: 'walk', type: 'material', desc: 'Steady pace walking' },
-  { id: '3', title: 'Biking', icon: 'bike', type: 'material', desc: 'Indoor or outdoor cycling' },
-];
+const WORKOUT_ICONS: Record<string, string> = {
+  Running: 'run',
+  Walking: 'walk',
+  Biking: 'bike',
+  Weights: 'weight-lifter',
+  Yoga: 'meditation',
+  HIIT: 'lightning-bolt',
+  Swimming: 'swim',
+  Stretching: 'human-handsup',
+};
 
 export default function AllWorkoutsScreen() {
   const navigation = useNavigation<any>();
   const { theme, darkMode } = useTheme();
+  const [workouts, setWorkouts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'workouts'), (snapshot) => {
+      const list = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (list.length > 0) {
+        setWorkouts(list);
+      } else {
+        setWorkouts([
+          { id: '1', title: 'Running', type: 'Running', desc: 'High intensity cardio' },
+          { id: '2', title: 'Walking', type: 'Walking', desc: 'Steady pace walking' },
+          { id: '3', title: 'Biking', type: 'Biking', desc: 'Indoor or outdoor cycling' },
+        ]);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -28,22 +53,30 @@ export default function AllWorkoutsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {workouts.map((workout) => (
-          <TouchableOpacity 
-            key={workout.id} 
-            style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={() => navigation.navigate('WorkoutDetail', { workout })}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: theme.background }]}>
-              <MaterialCommunityIcons name={workout.icon as any} size={32} color={theme.primary} />
-            </View>
-            <View style={styles.textContainer}>
-              <Text style={[styles.title, { color: theme.text }]}>{workout.title}</Text>
-              <Text style={[styles.desc, { color: theme.subtext }]}>{workout.desc}</Text>
-            </View>
-            <Feather name="chevron-right" size={20} color={theme.subtext} />
-          </TouchableOpacity>
-        ))}
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} />
+        ) : (
+          workouts.map((workout) => (
+            <TouchableOpacity
+              key={workout.id}
+              style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={() => navigation.navigate('WorkoutDetail', { workout })}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: theme.background }]}>
+                <MaterialCommunityIcons
+                  name={(WORKOUT_ICONS[workout.type] || WORKOUT_ICONS[workout.title] || 'dumbbell') as any}
+                  size={32}
+                  color={theme.primary}
+                />
+              </View>
+              <View style={styles.textContainer}>
+                <Text style={[styles.title, { color: theme.text }]}>{workout.title}</Text>
+                <Text style={[styles.desc, { color: theme.subtext }]}>{workout.desc}</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={theme.subtext} />
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
