@@ -41,8 +41,14 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      navigation.replace('MainTabs');
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      
+      // Secret signal: if email is admin@ironfit.com, go to Admin Panel
+      if (email.trim().toLowerCase() === 'admin@ironfit.com') {
+        navigation.replace('AdminPanel');
+      } else {
+        navigation.replace('MainTabs');
+      }
     } catch (error: any) {
       let errorMessage = 'Login failed. Please check your credentials.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
@@ -132,15 +138,6 @@ export default function LoginScreen() {
                 <Feather name="info" size={16} color={theme.primary} />
                 <Text style={[styles.hintTextDetail, { color: theme.primary }]}>Use your Firebase credentials to log in.</Text>
               </View>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate('AdminLogin')}
-                style={{ alignSelf: 'center', marginTop: 20, paddingVertical: 8 }}
-              >
-                <Text style={[styles.hintText, { color: theme.subtext, fontSize: 13 }]}>
-                  🛡️ Admin? <Text style={{ color: theme.primary, fontWeight: '600' }}>Login here</Text>
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
