@@ -157,20 +157,35 @@ export default function AdminPanelScreen() {
         {loading ? (
           <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
         ) : activeTab === 'workouts' ? (
-          workouts.map((item) => (
-            <View key={item.id} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <View style={[styles.iconCircle, { backgroundColor: theme.primary }]}>
-                <MaterialCommunityIcons name={item.iconName as any} size={24} color="#FFFFFF" />
+          <View>
+            {workouts.map((item) => (
+              <View key={item.id} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <View style={[styles.iconCircle, { backgroundColor: theme.primary }]}>
+                  <MaterialCommunityIcons name={item.iconName as any} size={24} color="#FFFFFF" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 15 }}>
+                  <Text style={[styles.workoutTitle, { color: theme.text }]}>{item.title}</Text>
+                  <Text style={[styles.workoutDetails, { color: theme.subtext }]}>{item.category} • {item.difficulty}</Text>
+                </View>
+                <TouchableOpacity onPress={() => deleteDoc(doc(db, 'workouts', item.id))} style={styles.deleteBtn}>
+                  <Feather name="trash-2" size={18} color="#FF8A8A" />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={[styles.card, styles.addCard, { backgroundColor: theme.card, borderColor: theme.primary, borderStyle: 'dashed' }]}
+              onPress={() => setModalVisible(true)}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: theme.primary + '20' }]}>
+                <Feather name="plus" size={24} color={theme.primary} />
               </View>
               <View style={{ flex: 1, marginLeft: 15 }}>
-                <Text style={[styles.workoutTitle, { color: theme.text }]}>{item.title}</Text>
-                <Text style={[styles.workoutDetails, { color: theme.subtext }]}>{item.category} • {item.difficulty}</Text>
+                <Text style={[styles.workoutTitle, { color: theme.primary }]}>Add New Workout</Text>
+                <Text style={[styles.workoutDetails, { color: theme.subtext }]}>Create a new session for your users</Text>
               </View>
-              <TouchableOpacity onPress={() => deleteDoc(doc(db, 'workouts', item.id))} style={styles.deleteBtn}>
-                <Feather name="trash-2" size={18} color="#FF8A8A" />
-              </TouchableOpacity>
-            </View>
-          ))
+            </TouchableOpacity>
+          </View>
         ) : (
           users.map((user) => (
             <View key={user.id} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -211,7 +226,7 @@ export default function AdminPanelScreen() {
                 style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
                 value={newWorkout.title}
                 onChangeText={(t) => setNewWorkout({ ...newWorkout, title: t })}
-                placeholder="Session Name"
+                placeholder="e.g Full Body Workout"
                 placeholderTextColor={theme.subtext}
               />
 
@@ -220,6 +235,8 @@ export default function AdminPanelScreen() {
                   <Text style={[styles.label, { color: theme.text }]}>Duration (min)</Text>
                   <TextInput
                     keyboardType="numeric"
+                    placeholder="e.g 30 mins"
+                    placeholderTextColor={theme.subtext}
                     style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
                     value={newWorkout.duration}
                     onChangeText={(t) => setNewWorkout({ ...newWorkout, duration: t })}
@@ -229,6 +246,8 @@ export default function AdminPanelScreen() {
                   <Text style={[styles.label, { color: theme.text }]}>Calories</Text>
                   <TextInput
                     keyboardType="numeric"
+                    placeholder="e.g 400 kcal"
+                    placeholderTextColor={theme.subtext}
                     style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
                     value={newWorkout.calories}
                     onChangeText={(t) => setNewWorkout({ ...newWorkout, calories: t })}
@@ -284,6 +303,8 @@ export default function AdminPanelScreen() {
                 multiline
                 style={[styles.input, { backgroundColor: theme.background, color: theme.text, height: 80 }]}
                 value={newWorkout.description}
+                placeholder='e.g High intensity cardio'
+                placeholderTextColor={theme.subtext}
                 onChangeText={(t) => setNewWorkout({ ...newWorkout, description: t })}
               />
 
@@ -298,9 +319,11 @@ export default function AdminPanelScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container:
+  {
+    flex: 1
+  },
   header:
   {
     padding: 24,
@@ -331,7 +354,8 @@ const styles = StyleSheet.create({
   {
     color: '#EF4444',
     fontWeight: 'bold',
-    fontSize: 13, marginLeft: 6
+    fontSize: 13,
+    marginLeft: 6
   },
   tabContainer:
   {
@@ -341,7 +365,8 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 5
   },
-  tab: {
+  tab:
+  {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
@@ -357,21 +382,132 @@ const styles = StyleSheet.create({
     paddingBottom: 20
   },
   card:
-    { flexDirection: 'row', alignItems: 'center', marginHorizontal: 24, padding: 16, borderRadius: 20, marginBottom: 12, borderWidth: 1, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-  iconCircle: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
-  workoutTitle: { fontSize: 16, fontWeight: '700' },
-  workoutDetails: { fontSize: 12, marginTop: 2 },
-  deleteBtn: { padding: 8 },
-  fab: { position: 'absolute', bottom: 30, right: 30, width: 64, height: 64, borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25, maxHeight: '92%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold' },
-  label: { fontSize: 13, fontWeight: '700', marginTop: 15, marginBottom: 8 },
-  input: { borderRadius: 15, padding: 15, fontSize: 16 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
-  iconChip: { padding: 12, borderRadius: 15, borderWidth: 2, marginRight: 10 },
-  saveBtn: { marginTop: 30, padding: 18, borderRadius: 18, alignItems: 'center' },
-  saveBtnText: { color: 'white', fontWeight: '800', fontSize: 16 }
+  {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 24,
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 12,
+    borderWidth: 1,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4
+  },
+  addCard:
+  {
+    borderWidth: 2,
+    marginBottom: 30
+  },
+  iconCircle:
+  {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  workoutTitle:
+  {
+    fontSize: 16,
+    fontWeight: '700'
+  },
+  workoutDetails:
+  {
+    fontSize: 12,
+    marginTop: 2
+  },
+  deleteBtn:
+  {
+    padding: 8
+  },
+  fab:
+  {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4
+  },
+  modalOverlay:
+  {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end'
+  },
+  modalContent:
+  {
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    padding: 25,
+    maxHeight: '92%'
+  },
+  modalHeader:
+  {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  modalTitle:
+  {
+    fontSize: 20,
+    fontWeight: 'bold'
+  },
+  label:
+  {
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 15,
+    marginBottom: 8
+  },
+  input:
+  {
+    borderRadius: 15,
+    padding: 15,
+    fontSize: 16
+  },
+  row:
+  {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  chip:
+  {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1
+  },
+  iconChip:
+  {
+    padding: 12,
+    borderRadius: 15,
+    borderWidth: 2,
+    marginRight: 10
+  },
+  saveBtn:
+  {
+    marginTop: 30,
+    padding: 18,
+    borderRadius: 18,
+    alignItems: 'center'
+  },
+  saveBtnText:
+  {
+    color: 'white',
+    fontWeight: '800',
+    fontSize: 16
+  }
 });
