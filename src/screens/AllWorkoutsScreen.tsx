@@ -64,14 +64,18 @@ export default function AllWorkoutsScreen() {
             >
               <View style={[styles.iconContainer, { backgroundColor: theme.background }]}>
                 <MaterialCommunityIcons
-                  name={(WORKOUT_ICONS[workout.type] || WORKOUT_ICONS[workout.title] || 'dumbbell') as any}
+
+                  name={(workout.iconName || 'dumbbell') as any}
                   size={32}
                   color={theme.primary}
                 />
               </View>
               <View style={styles.textContainer}>
                 <Text style={[styles.title, { color: theme.text }]}>{workout.title}</Text>
-                <Text style={[styles.desc, { color: theme.subtext }]}>{workout.desc}</Text>
+
+                <Text style={[styles.desc, { color: theme.subtext }]}>
+                  {workout.difficulty} • {workout.duration} mins • {workout.calories} kcal
+                </Text>
               </View>
               <Feather name="chevron-right" size={20} color={theme.subtext} />
             </TouchableOpacity>

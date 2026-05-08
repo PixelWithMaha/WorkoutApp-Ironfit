@@ -1,224 +1,140 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Modal,
-  Alert,
-  ActivityIndicator,
-  StatusBar,
-  useWindowDimensions
+  View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity,
+  TextInput, Modal, Alert, ActivityIndicator, StatusBar, BackHandler
 } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '../context/ThemeContext';
 import { db, auth } from '../config/firebase';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { useTheme } from '../context/ThemeContext';
 
-interface Workout {
-  id: string;
-  title: string;
-  desc: string;
-  type: string;
-  isLight: boolean;
-  createdAt?: any;
-}
+const ICON_OPTIONS = [
+  { name: 'run', label: 'Running' }, { name: 'walk', label: 'Walking' },
+  { name: 'bike', label: 'Biking' }, { name: 'weight-lifter', label: 'Weights' },
+  { name: 'meditation', label: 'Yoga' }, { name: 'lightning-bolt', label: 'HIIT' },
+  { name: 'swim', label: 'Swimming' }, { name: 'human-handsup', label: 'Stretch' },
+  { name: 'fire', label: 'Burn' }, { name: 'heart-pulse', label: 'Cardio' }
+];
 
-const WORKOUT_ICONS: Record<string, string> = {
-  Running: 'run',
-  Walking: 'walk',
-  Biking: 'bike',
-  Weights: 'weight-lifter',
-  Yoga: 'meditation',
-  HIIT: 'lightning-bolt',
-  Swimming: 'swim',
-  Stretching: 'human-handsup',
-};
-
-const WORKOUT_TYPES = Object.keys(WORKOUT_ICONS);
+const CATEGORIES = ['Weights', 'Cardio', 'Yoga', 'HIIT'];
+const DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced'];
 
 export default function AdminPanelScreen() {
-  const navigation = useNavigation<any>();
   const { theme, darkMode } = useTheme();
-  const { width } = useWindowDimensions();
-
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const navigation = useNavigation<any>();
+  const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+
   const [newWorkout, setNewWorkout] = useState({
-    title: '',
-    desc: '',
-    type: 'Running',
+    title: '', category: 'Cardio', duration: '',
+    difficulty: 'Beginner', iconName: 'run',
+    calories: '', description: '',
   });
 
-  // Real-time listener for workouts
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, 'workouts'),
-      (snapshot) => {
-        const workoutList: Workout[] = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        } as Workout));
-        setWorkouts(workoutList);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error listening to workouts:', error);
-        setLoading(false);
-      }
-    );
+    const backAction = () => {
+      Alert.alert("Hold on!", "Are you sure you want to exit the Admin Panel? You must logout to leave safely.", [
+        { text: "Cancel", onPress: () => null, style: "cancel" },
+        { text: "Logout", onPress: handleLogout }
+      ]);
+      return true;
+    };
 
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
+    return () => backHandler.remove();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'workouts'), (snapshot) => {
+      setWorkouts(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
     return () => unsubscribe();
   }, []);
 
-  const handleAddWorkout = async () => {
-    if (!newWorkout.title.trim()) {
-      Alert.alert('Error', 'Please enter a workout title.');
-      return;
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigation.replace('Login');
+    } catch (error) {
+      Alert.alert("Error", "Logout failed.");
     }
-    if (!newWorkout.desc.trim()) {
-      Alert.alert('Error', 'Please enter a workout description.');
-      return;
-    }
+  };
 
+  const handleAddWorkout = async () => {
+    const { title, description, duration, calories } = newWorkout;
+    if (!title || !description || !duration || !calories) {
+      Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
     setSaving(true);
     try {
       await addDoc(collection(db, 'workouts'), {
-        title: newWorkout.title.trim(),
-        desc: newWorkout.desc.trim(),
-        type: newWorkout.type,
-        isLight: false,
+        ...newWorkout,
+        duration: parseInt(newWorkout.duration),
+        calories: parseInt(newWorkout.calories),
         createdAt: serverTimestamp(),
       });
       setModalVisible(false);
-      setNewWorkout({ title: '', desc: '', type: 'Running' });
-      Alert.alert('Success', 'Workout added successfully! Users will see it instantly.');
-    } catch (error) {
-      console.error('Error adding workout:', error);
-      Alert.alert('Error', 'Failed to add workout. Please try again.');
+      setNewWorkout({ title: '', category: 'Cardio', duration: '', difficulty: 'Beginner', iconName: 'run', calories: '', description: '' });
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleDeleteWorkout = (workout: Workout) => {
-    Alert.alert(
-      'Delete Workout',
-      `Are you sure you want to delete "${workout.title}"? This will remove it for all users immediately.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, 'workouts', workout.id));
-            } catch (error) {
-              console.error('Error deleting workout:', error);
-              Alert.alert('Error', 'Failed to delete workout.');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout from admin panel?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        onPress: async () => {
-          await auth.signOut();
-          navigation.replace('Login');
-        },
-      },
-    ]);
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.card, borderBottomColor: theme.border }]}>
-        <View style={styles.headerLeft}>
-          <View style={[styles.adminIcon, { backgroundColor: theme.primary + '20' }]}>
-            <Feather name="shield" size={20} color={theme.primary} />
-          </View>
-          <View>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>Admin Panel</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.subtext }]}>Manage Workouts</Text>
-          </View>
+      <View style={[styles.header, { backgroundColor: theme.card }]}>
+        <View>
+          <Text style={[styles.welcomeText, { color: theme.subtext }]}>Welcome Back,</Text>
+          <Text style={[styles.adminName, { color: theme.text }]}>Admin Chief 👋</Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={[styles.logoutBtn, { backgroundColor: '#EF4444' + '15' }]}>
-          <Feather name="log-out" size={18} color="#EF4444" />
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Feather name="log-out" size={20} color="#EF4444" />
+          <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Stats Bar */}
-      <View style={[styles.statsBar, { backgroundColor: theme.card }]}>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: theme.primary }]}>{workouts.length}</Text>
-          <Text style={[styles.statLabel, { color: theme.subtext }]}>Total Workouts</Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: '#22C55E' }]}>Live</Text>
-          <Text style={[styles.statLabel, { color: theme.subtext }]}>Sync Status</Text>
-        </View>
-      </View>
-
-      {/* Workout List */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.primary} />
-            <Text style={[styles.loadingText, { color: theme.subtext }]}>Loading workouts...</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.statsContainer}>
+          <View style={[styles.statBox, { backgroundColor: theme.primary }]}>
+            <Text style={[styles.statNum, { color: '#FFFFFF' }]}>{workouts.length}</Text>
+            <Text style={[styles.statLabel, { color: 'rgba(255,255,255,0.7)' }]}>Active Workouts</Text>
           </View>
+          <View style={[styles.statBox, { backgroundColor: '#22C55E15' }]}>
+            <Text style={[styles.statNum, { color: '#22C55E' }]}>Live</Text>
+            <Text style={[styles.statLabel, { color: theme.subtext }]}>DB Status</Text>
+          </View>
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Workout Inventory</Text>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
         ) : workouts.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="dumbbell" size={64} color={theme.border} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No Workouts Yet</Text>
-            <Text style={[styles.emptyText, { color: theme.subtext }]}>
-              Tap the + button below to add your first workout.
-            </Text>
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="database-off" size={60} color={theme.border} />
+            <Text style={{ color: theme.subtext, marginTop: 10 }}>No workouts found in system.</Text>
           </View>
         ) : (
-          workouts.map((workout) => (
-            <View key={workout.id} style={[styles.workoutCard, { backgroundColor: theme.card }]}>
-              <View style={[styles.workoutIconContainer, { backgroundColor: theme.primary + '15' }]}>
-                <MaterialCommunityIcons
-                  name={(WORKOUT_ICONS[workout.type] || 'dumbbell') as any}
-                  size={28}
-                  color={theme.primary}
-                />
+          workouts.map((item) => (
+            <View key={item.id} style={[styles.card, { backgroundColor: theme.background, borderColor: theme.border }]}>
+              <View style={[styles.iconCircle, { backgroundColor: theme.primary }]}>
+                <MaterialCommunityIcons name={item.iconName as any} size={24} color={theme.iconBg} />
               </View>
-              <View style={styles.workoutInfo}>
-                <Text style={[styles.workoutTitle, { color: theme.text }]}>{workout.title}</Text>
-                <Text style={[styles.workoutDesc, { color: theme.subtext }]} numberOfLines={2}>
-                  {workout.desc}
+              <View style={{ flex: 1, marginLeft: 15 }}>
+                <Text style={[styles.workoutTitle, { color: theme.text }]}>{item.title}</Text>
+                <Text style={[styles.workoutDetails, { color: theme.subtext }]}>
+                  {item.category} • {item.difficulty}
                 </Text>
-                {workout.type && (
-                  <View style={[styles.typeBadge, { backgroundColor: theme.primary + '15' }]}>
-                    <Text style={[styles.typeBadgeText, { color: theme.primary }]}>{workout.type}</Text>
-                  </View>
-                )}
               </View>
-              <TouchableOpacity
-                style={[styles.deleteBtn, { backgroundColor: '#EF4444' + '15' }]}
-                onPress={() => handleDeleteWorkout(workout)}
-              >
-                <Feather name="trash-2" size={18} color="#EF4444" />
+              <TouchableOpacity onPress={() => deleteDoc(doc(db, 'workouts', item.id))} style={styles.deleteBtn}>
+                <Feather name="trash-2" size={18} color="#FF8A8A" />
               </TouchableOpacity>
             </View>
           ))
@@ -226,93 +142,109 @@ export default function AdminPanelScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Add Button */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: theme.primary }]}
-        onPress={() => setModalVisible(true)}
-        activeOpacity={0.8}
-      >
-        <Feather name="plus" size={28} color="white" />
+      <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary }]} onPress={() => setModalVisible(true)}>
+        <Feather name="plus" size={30} color="white" />
       </TouchableOpacity>
 
-      {/* Add Workout Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
+      <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Add New Workout</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Configure New Workout</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Feather name="x" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={[styles.label, { color: theme.text }]}>Workout Title</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
+                value={newWorkout.title}
+                onChangeText={(t) => setNewWorkout({ ...newWorkout, title: t })}
+                placeholder="Name of session"
+                placeholderTextColor={theme.subtext}
+              />
 
-            <Text style={[styles.inputLabel, { color: theme.text }]}>Workout Title</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-              placeholder="e.g. Morning Jogging"
-              placeholderTextColor={theme.subtext}
-              value={newWorkout.title}
-              onChangeText={(text) => setNewWorkout({ ...newWorkout, title: text })}
-            />
-
-            <Text style={[styles.inputLabel, { color: theme.text }]}>Description</Text>
-            <TextInput
-              style={[styles.input, styles.textArea, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
-              placeholder="e.g. Burn fat and boost endurance with a steady run."
-              placeholderTextColor={theme.subtext}
-              value={newWorkout.desc}
-              onChangeText={(text) => setNewWorkout({ ...newWorkout, desc: text })}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-
-            <Text style={[styles.inputLabel, { color: theme.text }]}>Type</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeSelector}>
-              {WORKOUT_TYPES.map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.typeChip,
-                    { backgroundColor: theme.background, borderColor: theme.border },
-                    newWorkout.type === type && { backgroundColor: theme.primary, borderColor: theme.primary },
-                  ]}
-                  onPress={() => setNewWorkout({ ...newWorkout, type })}
-                >
-                  <MaterialCommunityIcons
-                    name={(WORKOUT_ICONS[type]) as any}
-                    size={16}
-                    color={newWorkout.type === type ? 'white' : theme.subtext}
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.label, { color: theme.text }]}>Duration (min)</Text>
+                  <TextInput
+                    keyboardType="numeric"
+                    style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
+                    value={newWorkout.duration}
+                    onChangeText={(t) => setNewWorkout({ ...newWorkout, duration: t })}
+                    placeholder="20"
                   />
-                  <Text
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.label, { color: theme.text }]}>Calories</Text>
+                  <TextInput
+                    keyboardType="numeric"
+                    style={[styles.input, { backgroundColor: theme.background, color: theme.text }]}
+                    value={newWorkout.calories}
+                    onChangeText={(t) => setNewWorkout({ ...newWorkout, calories: t })}
+                    placeholder="150"
+                  />
+                </View>
+              </View>
+
+              <Text style={[styles.label, { color: theme.text }]}>Pick Visual Icon</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 5 }}>
+                {ICON_OPTIONS.map((icon) => (
+                  <TouchableOpacity
+                    key={icon.name}
+                    onPress={() => setNewWorkout({ ...newWorkout, iconName: icon.name })}
                     style={[
-                      styles.typeChipText,
-                      { color: theme.subtext },
-                      newWorkout.type === type && { color: 'white' },
+                      styles.iconChip,
+                      { backgroundColor: theme.background, borderColor: theme.border },
+                      newWorkout.iconName === icon.name && { borderColor: theme.primary, backgroundColor: theme.primary + '15' }
                     ]}
                   >
-                    {type}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                    <MaterialCommunityIcons name={icon.name as any} size={22} color={newWorkout.iconName === icon.name ? theme.primary : theme.subtext} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-            <TouchableOpacity
-              style={[styles.saveButton, { backgroundColor: theme.primary }, saving && { opacity: 0.7 }]}
-              onPress={handleAddWorkout}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.saveButtonText}>Add Workout</Text>
-              )}
-            </TouchableOpacity>
+              <Text style={[styles.label, { color: theme.text }]}>Category</Text>
+              <View style={styles.row}>
+                {CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    onPress={() => setNewWorkout({ ...newWorkout, category: cat })}
+                    style={[styles.chip, { borderColor: theme.border }, newWorkout.category === cat && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                  >
+                    <Text style={{ color: newWorkout.category === cat ? 'white' : theme.subtext }}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={[styles.label, { color: theme.text }]}>Difficulty</Text>
+              <View style={styles.row}>
+                {DIFFICULTIES.map(diff => (
+                  <TouchableOpacity
+                    key={diff}
+                    onPress={() => setNewWorkout({ ...newWorkout, difficulty: diff })}
+                    style={[styles.chip, { borderColor: theme.border }, newWorkout.difficulty === diff && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                  >
+                    <Text style={{ color: newWorkout.difficulty === diff ? 'white' : theme.subtext }}>{diff}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={[styles.label, { color: theme.text }]}>Description</Text>
+              <TextInput
+                multiline
+                style={[styles.input, { backgroundColor: theme.background, color: theme.text, height: 80 }]}
+                value={newWorkout.description}
+                onChangeText={(t) => setNewWorkout({ ...newWorkout, description: t })}
+                placeholder="What will users do?"
+              />
+
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary }]} onPress={handleAddWorkout}>
+                {saving ? <ActivityIndicator color="white" /> : <Text style={styles.saveBtnText}>Publish Workout</Text>}
+              </TouchableOpacity>
+              <View style={{ height: 50 }} />
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -321,220 +253,195 @@ export default function AdminPanelScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
+    padding: 24,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 10
   },
-  headerLeft: {
+  welcomeText:
+  {
+    fontSize: 14,
+    fontWeight: '500'
+  },
+  adminName:
+  {
+    fontSize: 22,
+    fontWeight: '800'
+  },
+  logoutBtn:
+  {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  adminIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  logoutBtn: {
-    width: 40,
-    height: 40,
+    backgroundColor: '#EF444415',
+    padding: 10,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    gap: 5
   },
-  statsBar: {
+  logoutText:
+  {
+    color: '#EF4444',
+    fontWeight: 'bold',
+    fontSize: 12
+  },
+  statsContainer:
+  {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 16,
+    gap: 15,
+    paddingHorizontal: 24,
+    marginTop: 20
   },
-  statItem: {
+  statBox:
+  {
     flex: 1,
-    alignItems: 'center',
+    padding: 20,
+    borderRadius: 20,
+    alignItems: 'center'
   },
-  statValue: {
+  statNum:
+  {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: 'bold'
   },
-  statLabel: {
-    fontSize: 12,
+  statLabel:
+  {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4
   },
-  statDivider: {
-    width: 1,
-    height: '100%',
+  sectionTitle:
+  {
+    fontSize: 18,
+    fontWeight: '700',
+    marginHorizontal: 24,
+    marginTop: 30,
+    marginBottom: 15
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    marginTop: 60,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 60,
-    gap: 12,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  workoutCard: {
+  scrollContent:
+    { paddingBottom: 20 },
+  card:
+  {
     flexDirection: 'row',
     alignItems: 'center',
+    marginHorizontal: 24,
     padding: 16,
     borderRadius: 20,
     marginBottom: 12,
+    borderWidth: 1,
+    elevation: 4
   },
-  workoutIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+  iconCircle:
+  {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
+    alignItems: 'center'
   },
-  workoutInfo: {
-    flex: 1,
-  },
-  workoutTitle: {
+  workoutTitle:
+  {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: '700'
   },
-  workoutDesc: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 6,
+  workoutDetails:
+  {
+    fontSize: 12,
+    marginTop: 2
   },
-  typeBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  typeBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  deleteBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  fab: {
+  deleteBtn:
+    { padding: 8 },
+  fab:
+  {
     position: 'absolute',
     bottom: 30,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 20,
+    right: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    elevation: 8
   },
-  modalOverlay: {
+  modalOverlay:
+  {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end'
   },
-  modalContent: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    paddingBottom: 40,
+  modalContent:
+  {
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    padding: 25,
+    maxHeight: '92%'
   },
-  modalHeader: {
+  modalHeader:
+  {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20
   },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+  modalTitle:
+  {
+    fontSize: 20,
+    fontWeight: 'bold'
   },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 16,
-    marginLeft: 4,
-  },
-  input: {
-    borderRadius: 14,
-    padding: 16,
-    fontSize: 16,
-    borderWidth: 1,
-  },
-  textArea: {
-    minHeight: 80,
-    paddingTop: 14,
-  },
-  typeSelector: {
-    flexDirection: 'row',
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  typeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginRight: 8,
-    borderWidth: 1,
-    gap: 6,
-  },
-  typeChipText: {
+  label:
+  {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginTop: 15,
+    marginBottom: 8
   },
-  saveButton: {
-    paddingVertical: 16,
-    borderRadius: 16,
+  input:
+  {
+    borderRadius: 15,
+    padding: 15,
+    fontSize: 16
+  },
+  row:
+  {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  chip:
+  {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1
+  },
+  iconChip:
+  {
+    padding: 12,
+    borderRadius: 15,
+    borderWidth: 2,
+    marginRight: 10
+  },
+  saveBtn:
+  {
+    marginTop: 30,
+    padding: 18,
+    borderRadius: 18,
     alignItems: 'center',
-    marginTop: 24,
+    elevation: 4
   },
-  saveButtonText: {
+  saveBtnText:
+  {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    fontSize: 16
   },
+  emptyState:
+  {
+    alignItems: 'center',
+    marginTop: 60
+  }
 });
