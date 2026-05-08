@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, StatusBar } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, StatusBar, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot } from 'firebase/firestore';
 import { styles, PRIMARY_COLOR } from '../styles/homeStyles';
 import MetricCard from '../components/MetricCard';
 import WorkoutCard from '../components/WorkoutCard';
@@ -10,7 +10,7 @@ import { useStepContext } from '../context/StepContext';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 
-const { height } = Dimensions.get('window');
+
 
 const defaultMonthlyData = [
   { month: 'Jan', value: 40 }, { month: 'Feb', value: 60 }, { month: 'Mar', value: 35 },
@@ -34,6 +34,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { currentSteps, currentCalories, notifications, clearNotifications } = useStepContext();
   const { theme, darkMode } = useTheme();
+  const { height } = useWindowDimensions();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,16 +55,19 @@ export default function HomeScreen() {
         }
 
         const workoutsCollection = collection(db, 'workouts');
-        const workoutsSnapshot = await getDocs(workoutsCollection);
-        const workoutsList = workoutsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (workoutsList.length > 0) {
-          setWorkouts(workoutsList);
-        } else {
-          setWorkouts([
-            { id: '1', title: "Running", desc: "Burn fat and boost\nendurance with a steady run.", isLight: false },
-            { id: '2', title: "Biking", desc: "Strengthen your legs and\nimprove stamina, indoors or out.", isLight: true }
-          ]);
-        }
+        const unsubscribe = onSnapshot(workoutsCollection, (snapshot) => {
+          const workoutsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+          if (workoutsList.length > 0) {
+            setWorkouts(workoutsList);
+          } else {
+            setWorkouts([
+              { id: '1', title: "Running", desc: "Burn fat and boost\nendurance with a steady run.", isLight: false },
+              { id: '2', title: "Biking", desc: "Strengthen your legs and\nimprove stamina, indoors or out.", isLight: true }
+            ]);
+          }
+        });
+
+        return () => unsubscribe();
       } catch (error) {
         console.error("Error fetching data: ", error);
       } finally {
@@ -124,7 +128,7 @@ export default function HomeScreen() {
           onRequestClose={() => setShowNotifications(false)}
         >
           <View style={localStyles.modalOverlay}>
-            <View style={[localStyles.modalContent, { backgroundColor: theme.card }]}>
+            <View style={[localStyles.modalContent, { backgroundColor: theme.card, minHeight: height * 0.4 }]}>
               <View style={localStyles.modalHeader}>
                 <Text style={[localStyles.modalTitle, { color: theme.text }]}>Notification Hub</Text>
                 <TouchableOpacity onPress={() => setShowNotifications(false)}>
@@ -282,7 +286,6 @@ const localStyles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
-    minHeight: height * 0.4,
   },
   modalHeader: {
     flexDirection: 'row',

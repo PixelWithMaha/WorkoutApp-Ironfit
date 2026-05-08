@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, TextInput, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Dimensions, TextInput, StatusBar, useWindowDimensions } from 'react-native';
 import { Feather, Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LineChart, ProgressChart } from 'react-native-chart-kit';
 import { colors } from '../theme/colors';
@@ -11,13 +11,14 @@ import { getFitnessPlan } from '../services/aiService';
 import Markdown from 'react-native-markdown-display';
 import { useTheme } from '../context/ThemeContext';
 
-const { width } = Dimensions.get('window');
+
 
 export default function ProgressScreen() {
   const { currentSteps, currentCalories, currentDistance } = useStepContext();
   const { weeklyData, loading: historyLoading } = useHistory();
   const { profileData } = useProfile();
   const { theme, darkMode } = useTheme();
+  const { width } = useWindowDimensions();
   const [summaryVisible, setSummaryVisible] = React.useState(false);
   const [aiModalVisible, setAiModalVisible] = React.useState(false);
   const [aiStepGoal, setAiStepGoal] = React.useState(10000);
@@ -274,7 +275,7 @@ export default function ProgressScreen() {
                 </View>
 
                 <TouchableOpacity style={[styles.closeButton, { backgroundColor: theme.primary }]} onPress={() => setSummaryVisible(false)}>
-                  <Text style={[styles.closeButtonText, { color: theme.text }]}>Done</Text>
+                  <Text style={[styles.closeButtonText, { color: theme.iconBg }]}>Done</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>

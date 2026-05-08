@@ -41,8 +41,13 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      navigation.replace('MainTabs');
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+
+      if (email.trim().toLowerCase() === 'admin@ironfit.com') {
+        navigation.replace('AdminPanel');
+      } else {
+        navigation.replace('MainTabs');
+      }
     } catch (error: any) {
       let errorMessage = 'Login failed. Please check your credentials.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {

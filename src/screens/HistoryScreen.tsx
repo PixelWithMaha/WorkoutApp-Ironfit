@@ -11,7 +11,8 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  Image
+  Image,
+  useWindowDimensions
 } from 'react-native';
 import { Feather, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
@@ -21,12 +22,13 @@ import { useHistory } from '../hooks/useHistory';
 import { useTheme } from '../context/ThemeContext';
 import { StatusBar } from 'react-native';
 
-const { width } = Dimensions.get('window');
+
 
 const TABS = ['1 Week', '2 Week', '3 Week', '1 Month'];
 
 export default function HistoryScreen() {
   const { theme, darkMode } = useTheme();
+  const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState('1 Week');
   const { currentSteps, currentDistance, manualSync } = useStepContext();
   const { trips, addTrip, loading: tripsLoading } = useTrips();

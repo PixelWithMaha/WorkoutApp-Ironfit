@@ -10,6 +10,7 @@ import ProgressScreen from '../screens/ProgressScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import SignUpScreen from '../screens/SignUpScreen';
+import AdminPanelScreen from '../screens/AdminPanelScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -21,6 +22,7 @@ export type RootStackParamList = {
   Settings: undefined;
   ChangePassword: undefined;
   WorkoutDetail: { workout: any };
+  AdminPanel: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,6 +44,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <Stack.Screen name="AdminPanel" component={AdminPanelScreen} />
     </Stack.Navigator>
   );
 }
