@@ -9,10 +9,13 @@ import ProgressScreen from '../screens/ProgressScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { colors } from '../theme/colors';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
+  const { theme, darkMode } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -33,10 +36,10 @@ export default function TabNavigator() {
 
           return <Feather name={iconName} size={24} color={color} />;
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.subtext,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.card,
           borderTopWidth: 0,
           elevation: 10,
           shadowColor: '#000',
