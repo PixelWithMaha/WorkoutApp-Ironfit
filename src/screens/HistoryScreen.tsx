@@ -21,6 +21,7 @@ import { useTrips } from '../hooks/useTrips';
 import { useHistory } from '../hooks/useHistory';
 import { useTheme } from '../context/ThemeContext';
 import { StatusBar } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 
 
@@ -28,6 +29,7 @@ const TABS = ['1 Week', '2 Week', '3 Week', '1 Month'];
 
 export default function HistoryScreen() {
   const { theme, darkMode } = useTheme();
+  const navigation = useNavigation<any>();
   const { width } = useWindowDimensions();
   const [activeTab, setActiveTab] = useState('1 Week');
   const { currentSteps, currentDistance, manualSync } = useStepContext();
@@ -90,9 +92,9 @@ export default function HistoryScreen() {
   const distPerHour = (parseFloat(stats.dist.toString()) / 1.5).toFixed(2);
 
   const getIntensity = (steps: number) => {
-    if (steps < 2000) return { label: 'Low', color: '#F97316' }; 
-    if (steps < 7000) return { label: 'Normal', color: '#22C55E' }; 
-    return { label: 'High', color: theme.primary }; 
+    if (steps < 2000) return { label: 'Low', color: '#F97316' };
+    if (steps < 7000) return { label: 'Normal', color: '#22C55E' };
+    return { label: 'High', color: theme.primary };
   };
   const intensity = getIntensity(currentSteps);
 
@@ -102,7 +104,16 @@ export default function HistoryScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>Step</Text>
+          <View>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Step</Text>
+            <TouchableOpacity
+              style={styles.hybridBadge}
+              onPress={() => navigation.navigate('HybridTracker' as never)}
+            >
+              <MaterialCommunityIcons name="sync" size={12} color={theme.primary} />
+              <Text style={[styles.hybridText, { color: theme.primary }]}>Hybrid Sync</Text>
+            </TouchableOpacity>
+          </View>
           <View style={{ flexDirection: 'row' }}>
             <TouchableOpacity onPress={handleManualSync} style={[styles.notificationButton, { marginRight: 12, backgroundColor: theme.card }]}>
               <MaterialCommunityIcons name="watch-variant" size={24} color={theme.primary} />
@@ -113,7 +124,7 @@ export default function HistoryScreen() {
           </View>
         </View>
 
-        {}
+        { }
         <Text style={[styles.activitySubtitle, { color: theme.subtext }]}>Walk & Run Activity</Text>
         <View style={styles.stepsContainer}>
           <FontAwesome5 name="running" size={32} color={theme.primary} style={styles.runIcon} />
@@ -233,21 +244,24 @@ export default function HistoryScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Highlights</Text>
-          <TouchableOpacity><Text style={[styles.seeAll, { color: theme.primary }]}>See All</Text></TouchableOpacity>
+
         </View>
         <Text style={[styles.highlightsDesc, { color: theme.subtext }]}>
           Your daily distance is improving, great job!{'\n'}
-          Compared to last week, you've increased your distance by {increase}%!
+          Compared to last week's average, you've increased your daily output by {increase}%!
         </Text>
 
-        <View style={[styles.increaseCard, { marginTop: 16, marginBottom: 100, backgroundColor: theme.card }]}>
+        <TouchableOpacity
+          onPress={() => Alert.alert("Step Insight", "You are on track to beat your previous week's performance. Keep walking!")}
+          style={[styles.increaseCard, { marginTop: 16, marginBottom: 100, backgroundColor: theme.card }]}
+        >
           <View>
             <Text style={[styles.increaseTitle, { fontSize: 24, color: theme.text }]}>3.2 <Text style={{ fontSize: 14, color: theme.subtext, fontWeight: 'normal' }}>Km/day</Text></Text>
           </View>
           <View style={[styles.tab, { backgroundColor: theme.primary, paddingVertical: 8, paddingHorizontal: 16 }]}>
-            <Text style={styles.activeTabText}>11 - 17 September</Text>
+            <Text style={styles.activeTabText}>View Detailed Stats</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
       </ScrollView>
     </SafeAreaView>
@@ -521,5 +535,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#475569',
+  },
+  hybridBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  hybridText: {
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

@@ -53,19 +53,24 @@ export function useHistory() {
           data.push(doc.data() as WeeklyStats);
         }
       });
-      
-      
+
+
       setWeeklyData(data);
 
-      
-      
+
+
       const currentWeekRef = doc(db, 'users', userId, 'weeklySummary', 'currentWeek');
       const currentSnap = await getDoc(currentWeekRef);
-      
+
       if (currentSnap.exists()) {
-        const current = currentSnap.data().distance || 0;
-        const lastWeek = data.find(d => d.weekLabel === 'Last Week')?.distance || 1; 
-        const inc = ((current - lastWeek) / lastWeek) * 100;
+        const currentDistance = currentSnap.data().distance || 0;
+        const lastWeekTotal = data.find(d => d.weekLabel === 'Last Week')?.distance || 1;
+
+        const daysElapsed = Math.max(new Date().getDay(), 1);
+        const currentDailyAvg = currentDistance / daysElapsed;
+        const lastWeekDailyAvg = lastWeekTotal / 7;
+
+        const inc = ((currentDailyAvg - lastWeekDailyAvg) / lastWeekDailyAvg) * 100;
         setIncrease(parseFloat(inc.toFixed(1)));
       }
 

@@ -11,6 +11,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import AdminPanelScreen from '../screens/AdminPanelScreen';
+import HybridTrackerScreen from '../screens/HybridTrackerScreen';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -23,6 +24,7 @@ export type RootStackParamList = {
   ChangePassword: undefined;
   WorkoutDetail: { workout: any };
   AdminPanel: undefined;
+  HybridTracker: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -45,6 +47,7 @@ export default function AppNavigator() {
       <Stack.Screen name="WorkoutDetail" component={WorkoutDetailScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="AdminPanel" component={AdminPanelScreen} />
+      <Stack.Screen name="HybridTracker" component={HybridTrackerScreen} />
     </Stack.Navigator>
   );
 }

@@ -7,7 +7,7 @@ import { useStepContext } from '../context/StepContext';
 import { Modal, ActivityIndicator, Alert } from 'react-native';
 import { useHistory } from '../hooks/useHistory';
 import { useProfile } from '../hooks/useProfile';
-import { getFitnessPlan } from '../services/aiService';
+import { getFitnessPlan, FitnessPlanResult } from '../services/aiService';
 import Markdown from 'react-native-markdown-display';
 import { useTheme } from '../context/ThemeContext';
 
@@ -23,7 +23,7 @@ export default function ProgressScreen() {
   const [aiModalVisible, setAiModalVisible] = React.useState(false);
   const [aiStepGoal, setAiStepGoal] = React.useState(10000);
   const [aiLoading, setAiLoading] = React.useState(false);
-  const [aiResult, setAiResult] = React.useState('');
+  const [aiResult, setAiResult] = React.useState<FitnessPlanResult | null>(null);
   const [userInput, setUserInput] = React.useState({
     age: profileData.age || '',
     goal: '',
@@ -355,18 +355,69 @@ export default function ProgressScreen() {
                   ) : (
                     <View>
                       <Text style={[styles.aiSectionTitle, { color: theme.primary }]}>Your Personalized Plan</Text>
-                      <Markdown style={{
-                        body: { color: theme.text },
-                        heading1: { color: theme.text },
-                        heading2: { color: theme.text },
-                      }}>{aiResult}</Markdown>
+                      {aiResult && (
+                        <View>
+                          <View style={[styles.aiResultCard, { backgroundColor: theme.card }]}>
+                            <View style={styles.bmiResultRow}>
+                              <View style={styles.bmiCircle}>
+                                <Text style={[styles.bmiValue, { color: theme.text }]}>{aiResult.bmi}</Text>
+                                <Text style={styles.bmiLabel}>BMI</Text>
+                              </View>
+                              <View style={styles.bmiInfo}>
+                                <Text style={[styles.bmiCategoryText, { color: theme.text }]}>{aiResult.bmiCategory}</Text>
+                                <Text style={[styles.bmiDesc, { color: theme.subtext }]}>{aiResult.bmiAdvice}</Text>
+                              </View>
+                            </View>
+                          </View>
 
-                      <View style={[styles.aiResultCard, { backgroundColor: theme.primary, marginTop: 24 }]}>
-                        <Text style={[styles.aiSectionTitle, { color: colors.white, marginBottom: 8 }]}>Goal Update</Text>
-                        <Text style={styles.aiRecText}>
-                          I've updated your daily goal to 12,000 steps based on your current progress. Let's hit it!
-                        </Text>
-                      </View>
+                          <View style={styles.summaryStatsRow}>
+                            <View style={styles.statBoxLarge}>
+                              <Ionicons name="flame" size={32} color={colors.calories} />
+                              <Text style={[styles.statValueLarge, { color: theme.text }]}>{aiResult.dailyCalories}</Text>
+                              <Text style={[styles.statLabelLarge, { color: theme.subtext }]}>Kcal Target</Text>
+                            </View>
+                            <View style={styles.statBoxLarge}>
+                              <Ionicons name="footsteps" size={32} color={theme.primary} />
+                              <Text style={[styles.statValueLarge, { color: theme.text }]}>{aiResult.dailySteps}</Text>
+                              <Text style={[styles.statLabelLarge, { color: theme.subtext }]}>Steps/Day</Text>
+                            </View>
+                          </View>
+
+                          <View style={[styles.aiResultCard, { backgroundColor: theme.card }]}>
+                            <Text style={[styles.aiSectionTitle, { color: theme.primary }]}>Diet Plan</Text>
+
+                            <View style={styles.dietItem}>
+                              <Text style={[styles.dietTime, { color: theme.text }]}>🍳 Breakfast</Text>
+                              <Text style={[styles.dietText, { color: theme.subtext }]}>{aiResult.diet.breakfast}</Text>
+                            </View>
+
+                            <View style={styles.dietItem}>
+                              <Text style={[styles.dietTime, { color: theme.text }]}>🥗 Lunch</Text>
+                              <Text style={[styles.dietText, { color: theme.subtext }]}>{aiResult.diet.lunch}</Text>
+                            </View>
+
+                            <View style={styles.dietItem}>
+                              <Text style={[styles.dietTime, { color: theme.text }]}>🍲 Dinner</Text>
+                              <Text style={[styles.dietText, { color: theme.subtext }]}>{aiResult.diet.dinner}</Text>
+                            </View>
+
+                            <View style={styles.dietItem}>
+                              <Text style={[styles.dietTime, { color: theme.text }]}>🍎 Snacks</Text>
+                              <Text style={[styles.dietText, { color: theme.subtext }]}>{aiResult.diet.snacks}</Text>
+                            </View>
+                          </View>
+
+                          <View style={[styles.aiResultCard, { backgroundColor: theme.primary, marginTop: 16 }]}>
+                            <Text style={[styles.aiSectionTitle, { color: colors.white, marginBottom: 8 }]}>Weekly Goal</Text>
+                            <Text style={styles.aiRecText}>
+                              {aiResult.weeklyGoal}
+                            </Text>
+                            <Text style={[styles.aiRecText, { marginTop: 8, fontStyle: 'italic', opacity: 0.8 }]}>
+                              "{aiResult.motivationalTip}"
+                            </Text>
+                          </View>
+                        </View>
+                      )}
 
                       <TouchableOpacity
                         style={[styles.closeButton, { marginTop: 24, backgroundColor: theme.primary }]}
