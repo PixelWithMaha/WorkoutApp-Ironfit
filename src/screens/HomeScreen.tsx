@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, RefreshControl } from 'react-native';
-import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, StatusBar, useWindowDimensions } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, StatusBar, useWindowDimensions, RefreshControl } from 'react-native';
 import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
-import { doc, getDoc, collection, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, collection, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { styles, PRIMARY_COLOR } from '../styles/homeStyles';
 import MetricCard from '../components/MetricCard';
 import WorkoutCard from '../components/WorkoutCard';
 import { useStepContext } from '../context/StepContext';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
-
-
 
 const defaultMonthlyData = [
   { month: 'Jan', value: 40 }, { month: 'Feb', value: 60 }, { month: 'Mar', value: 35 },
@@ -33,6 +30,9 @@ export default function HomeScreen() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [graphView, setGraphView] = useState<'Monthly' | 'Weekly'>('Monthly');
   const navigation = useNavigation<any>();
+  const { height } = useWindowDimensions();
+  const { theme, darkMode } = useTheme();
+
   const { 
     currentSteps, 
     currentCalories, 
@@ -44,23 +44,11 @@ export default function HomeScreen() {
     manualSync 
   } = useStepContext();
 
-  const fetchData = async () => {
-    try {
-      const userId = auth.currentUser?.uid;
-      if (userId) {
-        const userDocRef = doc(db, 'users', userId);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          setUserData(userDocSnap.data());
-  const { currentSteps, currentCalories, notifications, clearNotifications } = useStepContext();
-  const { theme, darkMode } = useTheme();
-  const { height } = useWindowDimensions();
-
   useEffect(() => {
     let unsubscribeWorkouts: () => void;
     let unsubscribeUser: () => void;
 
-    const fetchData = async () => {
+    const setupListeners = () => {
       try {
         const userId = auth.currentUser?.uid;
         if (userId) {
@@ -90,7 +78,21 @@ export default function HomeScreen() {
             }
             setLoading(false);
           });
+
+          const workoutsCollection = collection(db, 'workouts');
+          unsubscribeWorkouts = onSnapshot(workoutsCollection, (snapshot) => {
+            const workoutsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            if (workoutsList.length > 0) {
+              setWorkouts(workoutsList);
+            } else {
+              setWorkouts([
+                { id: '1', title: "Running", desc: "Burn fat and boost\nendurance with a steady run.", isLight: false },
+                { id: '2', title: "Biking", desc: "Strengthen your legs and\nimprove stamina, indoors or out.", isLight: true }
+              ]);
+            }
+          });
         } else {
+          // Fallback for no user
           setUserData({
             name: 'Sarah',
             metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
@@ -99,40 +101,13 @@ export default function HomeScreen() {
           });
           setLoading(false);
         }
-      } else {
-        setUserData({
-          name: 'Sarah',
-          metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
-          healthData: defaultMonthlyData,
-        });
-      }
-
-        const workoutsCollection = collection(db, 'workouts');
-        unsubscribeWorkouts = onSnapshot(workoutsCollection, (snapshot) => {
-          const workoutsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (workoutsList.length > 0) {
-            setWorkouts(workoutsList);
-          } else {
-            setWorkouts([
-              { id: '1', title: "Running", desc: "Burn fat and boost\nendurance with a steady run.", isLight: false },
-              { id: '2', title: "Biking", desc: "Strengthen your legs and\nimprove stamina, indoors or out.", isLight: true }
-            ]);
-          }
-        });
-
       } catch (error) {
-        console.error("Error fetching data: ", error);
+        console.error("Error setting up listeners: ", error);
         setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching data: ", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  useEffect(() => {
-    fetchData();
+    setupListeners();
 
     return () => {
       if (unsubscribeWorkouts) unsubscribeWorkouts();
@@ -142,7 +117,6 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     await manualSync();
-    await fetchData();
   };
 
   const getNotifIcon = (type: string) => {
@@ -152,33 +126,30 @@ export default function HomeScreen() {
       case 'goal': return { name: 'target', color: '#10B981', iconSet: Feather };
       case 'motivation': return { name: 'rocket-outline', color: '#F59E0B', iconSet: Ionicons };
       case 'warning': return { name: 'alert-circle', color: '#EF4444', iconSet: Feather };
-      default: return { name: 'bell', color: PRIMARY_COLOR, iconSet: Feather };
+      default: return { name: 'bell', color: theme.primary, iconSet: Feather };
     }
   };
 
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={PRIMARY_COLOR} />
+        <ActivityIndicator size="large" color={theme.primary} />
       </SafeAreaView>
     );
   }
 
-  const metrics = userData?.metrics || { water: 0, calories: 0, heartRate: 0 };
+  const metrics = userData?.metrics || { water: 0, calories: 0, heartRate: 0, distance: 0 };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={isSyncing} onRefresh={onRefresh} tintColor={PRIMARY_COLOR} />
+          <RefreshControl refreshing={isSyncing} onRefresh={onRefresh} tintColor={theme.primary} />
         }
       >
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={[styles.avatarPlaceholder, { backgroundColor: theme.iconBg }]} />
@@ -203,7 +174,7 @@ export default function HomeScreen() {
           onRequestClose={() => setShowNotifications(false)}
         >
           <View style={localStyles.modalOverlay}>
-            <View style={[localStyles.modalContent, { backgroundColor: theme.card, minHeight: height * 0.4 }]}>
+            <View style={[localStyles.modalContent, { backgroundColor: theme.card }]}>
               <View style={localStyles.modalHeader}>
                 <Text style={[localStyles.modalTitle, { color: theme.text }]}>Notification Hub</Text>
                 <TouchableOpacity onPress={() => setShowNotifications(false)}>
@@ -304,32 +275,26 @@ export default function HomeScreen() {
             theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
-          <MetricCard 
-            label="Heart Rate" 
-            value={currentHeartRate || metrics.heartRate} 
-            unit="Bpm" 
-            icon="heart" 
-            color="#7E57C2" 
           <MetricCard
             label="Heart Rate"
-            value={metrics.heartRate}
+            value={currentHeartRate || metrics.heartRate}
             unit="Bpm"
             icon="heart"
             color={darkMode ? theme.primary : "#7E57C2"}
             theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
-          <MetricCard 
-            label="Distance" 
-            value={currentDistance || metrics.distance || 0} 
-            unit="Km" 
-            icon="map-outline" 
-            color="#10B981" 
+          <MetricCard
+            label="Distance"
+            value={currentDistance || metrics.distance || 0}
+            unit="Km"
+            icon="map-outline"
+            color={darkMode ? theme.primary : "#10B981"}
+            theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
         </View>
 
-        { }
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Suggested Workouts</Text>
           <TouchableOpacity onPress={() => navigation.navigate('AllWorkouts')}>
