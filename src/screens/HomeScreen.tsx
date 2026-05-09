@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, StatusBar, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
-import { doc, getDoc, collection, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { styles, PRIMARY_COLOR } from '../styles/homeStyles';
 import MetricCard from '../components/MetricCard';
 import WorkoutCard from '../components/WorkoutCard';
@@ -37,25 +37,51 @@ export default function HomeScreen() {
   const { height } = useWindowDimensions();
 
   useEffect(() => {
+    let unsubscribeWorkouts: () => void;
+    let unsubscribeUser: () => void;
+
     const fetchData = async () => {
       try {
         const userId = auth.currentUser?.uid;
         if (userId) {
           const userDocRef = doc(db, 'users', userId);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            setUserData(userDocSnap.data());
-          }
+
+          unsubscribeUser = onSnapshot(userDocRef, async (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              setUserData(data);
+
+              if (!data.healthData || data.healthData.length === 0 || !data.weeklyHealthData || data.weeklyHealthData.length === 0) {
+                console.log("Seeding health data for user:", userId);
+                await updateDoc(userDocRef, {
+                  healthData: data.healthData && data.healthData.length > 0 ? data.healthData : defaultMonthlyData,
+                  weeklyHealthData: data.weeklyHealthData && data.weeklyHealthData.length > 0 ? data.weeklyHealthData : defaultWeeklyData
+                });
+              }
+            } else {
+              console.log("Creating new user doc and seeding data...");
+              await setDoc(userDocRef, {
+                name: 'User',
+                metrics: { water: 0, calories: 0, heartRate: 0 },
+                healthData: defaultMonthlyData,
+                weeklyHealthData: defaultWeeklyData,
+                createdAt: new Date().toISOString()
+              });
+            }
+            setLoading(false);
+          });
         } else {
           setUserData({
             name: 'Sarah',
             metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
             healthData: defaultMonthlyData,
+            weeklyHealthData: defaultWeeklyData
           });
+          setLoading(false);
         }
 
         const workoutsCollection = collection(db, 'workouts');
-        const unsubscribe = onSnapshot(workoutsCollection, (snapshot) => {
+        unsubscribeWorkouts = onSnapshot(workoutsCollection, (snapshot) => {
           const workoutsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
           if (workoutsList.length > 0) {
             setWorkouts(workoutsList);
@@ -67,15 +93,18 @@ export default function HomeScreen() {
           }
         });
 
-        return () => unsubscribe();
       } catch (error) {
         console.error("Error fetching data: ", error);
-      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
+
+    return () => {
+      if (unsubscribeWorkouts) unsubscribeWorkouts();
+      if (unsubscribeUser) unsubscribeUser();
+    };
   }, []);
 
   const getNotifIcon = (type: string) => {
@@ -112,10 +141,10 @@ export default function HomeScreen() {
               <Text style={[styles.subtitle, { color: theme.subtext }]}>Ready to crush your health goals today?</Text>
             </View>
           </View>
-        <TouchableOpacity 
-          style={[styles.notificationButton, { backgroundColor: theme.card }]} 
-          onPress={() => setShowNotifications(true)}
-        >
+          <TouchableOpacity
+            style={[styles.notificationButton, { backgroundColor: theme.card }]}
+            onPress={() => setShowNotifications(true)}
+          >
             <Feather name="bell" size={22} color={theme.text} />
             {notifications.length > 0 && <View style={localStyles.badge} />}
           </TouchableOpacity>
@@ -166,8 +195,8 @@ export default function HomeScreen() {
               </ScrollView>
 
               {notifications.length > 0 && (
-                <TouchableOpacity 
-                  style={[localStyles.clearButton, { backgroundColor: theme.border }]} 
+                <TouchableOpacity
+                  style={[localStyles.clearButton, { backgroundColor: theme.border }]}
                   onPress={() => { clearNotifications(); setShowNotifications(false); }}
                 >
                   <Text style={[localStyles.clearButtonText, { color: theme.text }]}>Clear All</Text>
@@ -183,7 +212,7 @@ export default function HomeScreen() {
               <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={20} color={theme.primary} />
               <Text style={[styles.chartTitle, { color: theme.text }]}>{graphView} Health Status</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dropdown}
               onPress={() => setGraphView(graphView === 'Monthly' ? 'Weekly' : 'Monthly')}
             >
@@ -193,7 +222,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.chartBars}>
-            {(graphView === 'Monthly' ? (userData?.healthData || defaultMonthlyData) : defaultWeeklyData).map((item: any, index: number) => (
+            {(graphView === 'Monthly' ? (userData?.healthData || defaultMonthlyData) : (userData?.weeklyHealthData || defaultWeeklyData)).map((item: any, index: number) => (
               <View key={index} style={styles.barGroup}>
                 <View style={[styles.barTrack, { backgroundColor: theme.iconBg }]}>
                   <View style={[styles.barFill, { height: `${item.value}%`, backgroundColor: theme.primary }]} />
@@ -211,36 +240,36 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.metricsGrid}>
-          <MetricCard 
-            label="Water" 
-            value={metrics.water} 
-            unit="Liters" 
-            icon="water" 
-            color={darkMode ? theme.primary : "#2196F3"} 
+          <MetricCard
+            label="Water"
+            value={metrics.water}
+            unit="Liters"
+            icon="water"
+            color={darkMode ? theme.primary : "#2196F3"}
             theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
-          <MetricCard 
-            label="Calories" 
-            value={currentCalories || metrics.calories} 
-            unit="Cal" 
-            icon="flame" 
-            color={darkMode ? theme.primary : "#FFC107"} 
+          <MetricCard
+            label="Calories"
+            value={currentCalories || metrics.calories}
+            unit="Cal"
+            icon="flame"
+            color={darkMode ? theme.primary : "#FFC107"}
             theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
-          <MetricCard 
-            label="Heart Rate" 
-            value={metrics.heartRate} 
-            unit="Bpm" 
-            icon="heart" 
-            color={darkMode ? theme.primary : "#7E57C2"} 
+          <MetricCard
+            label="Heart Rate"
+            value={metrics.heartRate}
+            unit="Bpm"
+            icon="heart"
+            color={darkMode ? theme.primary : "#7E57C2"}
             theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
         </View>
 
-        {}
+        { }
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Suggested Workouts</Text>
           <TouchableOpacity onPress={() => navigation.navigate('AllWorkouts')}>
