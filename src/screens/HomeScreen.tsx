@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, RefreshControl } from 'react-native';
 import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, StatusBar, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
@@ -32,6 +33,25 @@ export default function HomeScreen() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [graphView, setGraphView] = useState<'Monthly' | 'Weekly'>('Monthly');
   const navigation = useNavigation<any>();
+  const { 
+    currentSteps, 
+    currentCalories, 
+    currentDistance,
+    currentHeartRate, 
+    notifications, 
+    clearNotifications,
+    isSyncing,
+    manualSync 
+  } = useStepContext();
+
+  const fetchData = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (userId) {
+        const userDocRef = doc(db, 'users', userId);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          setUserData(userDocSnap.data());
   const { currentSteps, currentCalories, notifications, clearNotifications } = useStepContext();
   const { theme, darkMode } = useTheme();
   const { height } = useWindowDimensions();
@@ -79,6 +99,13 @@ export default function HomeScreen() {
           });
           setLoading(false);
         }
+      } else {
+        setUserData({
+          name: 'Sarah',
+          metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
+          healthData: defaultMonthlyData,
+        });
+      }
 
         const workoutsCollection = collection(db, 'workouts');
         unsubscribeWorkouts = onSnapshot(workoutsCollection, (snapshot) => {
@@ -97,8 +124,14 @@ export default function HomeScreen() {
         console.error("Error fetching data: ", error);
         setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching data: ", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
 
     return () => {
@@ -106,6 +139,11 @@ export default function HomeScreen() {
       if (unsubscribeUser) unsubscribeUser();
     };
   }, []);
+
+  const onRefresh = async () => {
+    await manualSync();
+    await fetchData();
+  };
 
   const getNotifIcon = (type: string) => {
     switch (type) {
@@ -129,6 +167,14 @@ export default function HomeScreen() {
   const metrics = userData?.metrics || { water: 0, calories: 0, heartRate: 0 };
 
   return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={isSyncing} onRefresh={onRefresh} tintColor={PRIMARY_COLOR} />
+        }
+      >
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -258,6 +304,12 @@ export default function HomeScreen() {
             theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
+          <MetricCard 
+            label="Heart Rate" 
+            value={currentHeartRate || metrics.heartRate} 
+            unit="Bpm" 
+            icon="heart" 
+            color="#7E57C2" 
           <MetricCard
             label="Heart Rate"
             value={metrics.heartRate}
@@ -265,6 +317,14 @@ export default function HomeScreen() {
             icon="heart"
             color={darkMode ? theme.primary : "#7E57C2"}
             theme={theme}
+            onPress={() => navigation.navigate('Progress')}
+          />
+          <MetricCard 
+            label="Distance" 
+            value={currentDistance || metrics.distance || 0} 
+            unit="Km" 
+            icon="map-outline" 
+            color="#10B981" 
             onPress={() => navigation.navigate('Progress')}
           />
         </View>
