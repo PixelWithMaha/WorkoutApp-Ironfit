@@ -17,14 +17,9 @@ export function useWorkoutPlans() {
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [localPlans, setLocalPlans] = useState<WorkoutPlan[]>([]);
-  const userId = auth.currentUser?.uid;
+  const userId = auth.currentUser?.uid || 'test_user_123';
 
   useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
     const q = query(collection(db, 'users', userId, 'workoutPlans'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const plansList = snapshot.docs.map(doc => ({

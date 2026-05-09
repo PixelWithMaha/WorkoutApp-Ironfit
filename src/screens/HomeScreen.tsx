@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, RefreshControl } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, StatusBar, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { styles, PRIMARY_COLOR } from '../styles/homeStyles';
 import MetricCard from '../components/MetricCard';
 import WorkoutCard from '../components/WorkoutCard';
 import { useStepContext } from '../context/StepContext';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 
-const { height } = Dimensions.get('window');
+
 
 const defaultMonthlyData = [
   { month: 'Jan', value: 40 }, { month: 'Feb', value: 60 }, { month: 'Mar', value: 35 },
@@ -50,6 +52,52 @@ export default function HomeScreen() {
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           setUserData(userDocSnap.data());
+  const { currentSteps, currentCalories, notifications, clearNotifications } = useStepContext();
+  const { theme, darkMode } = useTheme();
+  const { height } = useWindowDimensions();
+
+  useEffect(() => {
+    let unsubscribeWorkouts: () => void;
+    let unsubscribeUser: () => void;
+
+    const fetchData = async () => {
+      try {
+        const userId = auth.currentUser?.uid;
+        if (userId) {
+          const userDocRef = doc(db, 'users', userId);
+
+          unsubscribeUser = onSnapshot(userDocRef, async (docSnap) => {
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              setUserData(data);
+
+              if (!data.healthData || data.healthData.length === 0 || !data.weeklyHealthData || data.weeklyHealthData.length === 0) {
+                console.log("Seeding health data for user:", userId);
+                await updateDoc(userDocRef, {
+                  healthData: data.healthData && data.healthData.length > 0 ? data.healthData : defaultMonthlyData,
+                  weeklyHealthData: data.weeklyHealthData && data.weeklyHealthData.length > 0 ? data.weeklyHealthData : defaultWeeklyData
+                });
+              }
+            } else {
+              console.log("Creating new user doc and seeding data...");
+              await setDoc(userDocRef, {
+                name: 'User',
+                metrics: { water: 0, calories: 0, heartRate: 0 },
+                healthData: defaultMonthlyData,
+                weeklyHealthData: defaultWeeklyData,
+                createdAt: new Date().toISOString()
+              });
+            }
+            setLoading(false);
+          });
+        } else {
+          setUserData({
+            name: 'Sarah',
+            metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
+            healthData: defaultMonthlyData,
+            weeklyHealthData: defaultWeeklyData
+          });
+          setLoading(false);
         }
       } else {
         setUserData({
@@ -59,16 +107,22 @@ export default function HomeScreen() {
         });
       }
 
-      const workoutsCollection = collection(db, 'workouts');
-      const workoutsSnapshot = await getDocs(workoutsCollection);
-      const workoutsList = workoutsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      if (workoutsList.length > 0) {
-        setWorkouts(workoutsList);
-      } else {
-        setWorkouts([
-          { id: '1', title: "Running", desc: "Burn fat and boost\nendurance with a steady run.", isLight: false },
-          { id: '2', title: "Biking", desc: "Strengthen your legs and\nimprove stamina, indoors or out.", isLight: true }
-        ]);
+        const workoutsCollection = collection(db, 'workouts');
+        unsubscribeWorkouts = onSnapshot(workoutsCollection, (snapshot) => {
+          const workoutsList = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+          if (workoutsList.length > 0) {
+            setWorkouts(workoutsList);
+          } else {
+            setWorkouts([
+              { id: '1', title: "Running", desc: "Burn fat and boost\nendurance with a steady run.", isLight: false },
+              { id: '2', title: "Biking", desc: "Strengthen your legs and\nimprove stamina, indoors or out.", isLight: true }
+            ]);
+          }
+        });
+
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error fetching data: ", error);
@@ -79,6 +133,11 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchData();
+
+    return () => {
+      if (unsubscribeWorkouts) unsubscribeWorkouts();
+      if (unsubscribeUser) unsubscribeUser();
+    };
   }, []);
 
   const onRefresh = async () => {
@@ -99,7 +158,7 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={PRIMARY_COLOR} />
       </SafeAreaView>
     );
@@ -116,18 +175,23 @@ export default function HomeScreen() {
           <RefreshControl refreshing={isSyncing} onRefresh={onRefresh} tintColor={PRIMARY_COLOR} />
         }
       >
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
-        {}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={styles.avatarPlaceholder} />
+            <View style={[styles.avatarPlaceholder, { backgroundColor: theme.iconBg }]} />
             <View>
-              <Text style={styles.greeting}>Hi, {userData?.name || 'User'}!</Text>
-              <Text style={styles.subtitle}>Ready to crush your health goals today?</Text>
+              <Text style={[styles.greeting, { color: theme.text }]}>Hi, {userData?.name || 'User'}!</Text>
+              <Text style={[styles.subtitle, { color: theme.subtext }]}>Ready to crush your health goals today?</Text>
             </View>
           </View>
-        <TouchableOpacity style={styles.notificationButton} onPress={() => setShowNotifications(true)}>
-            <Feather name="bell" size={22} color="#1C1C1E" />
+          <TouchableOpacity
+            style={[styles.notificationButton, { backgroundColor: theme.card }]}
+            onPress={() => setShowNotifications(true)}
+          >
+            <Feather name="bell" size={22} color={theme.text} />
             {notifications.length > 0 && <View style={localStyles.badge} />}
           </TouchableOpacity>
         </View>
@@ -139,36 +203,36 @@ export default function HomeScreen() {
           onRequestClose={() => setShowNotifications(false)}
         >
           <View style={localStyles.modalOverlay}>
-            <View style={localStyles.modalContent}>
+            <View style={[localStyles.modalContent, { backgroundColor: theme.card, minHeight: height * 0.4 }]}>
               <View style={localStyles.modalHeader}>
-                <Text style={localStyles.modalTitle}>Notification Hub</Text>
+                <Text style={[localStyles.modalTitle, { color: theme.text }]}>Notification Hub</Text>
                 <TouchableOpacity onPress={() => setShowNotifications(false)}>
-                  <Ionicons name="close-circle" size={28} color="#94A3B8" />
+                  <Ionicons name="close-circle" size={28} color={theme.subtext} />
                 </TouchableOpacity>
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: height * 0.6 }}>
                 {notifications.length === 0 ? (
                   <View style={localStyles.emptyContainer}>
-                    <Ionicons name="notifications-off-outline" size={60} color="#CBD5E1" />
-                    <Text style={localStyles.emptyText}>No notifications yet.</Text>
-                    <Text style={localStyles.emptySub}>We'll alert you about goals & workouts!</Text>
+                    <Ionicons name="notifications-off-outline" size={60} color={theme.border} />
+                    <Text style={[localStyles.emptyText, { color: theme.text }]}>No notifications yet.</Text>
+                    <Text style={[localStyles.emptySub, { color: theme.subtext }]}>We'll alert you about goals & workouts!</Text>
                   </View>
                 ) : (
                   notifications.map((notif) => {
                     const iconConfig = getNotifIcon(notif.type);
                     const IconComponent = iconConfig.iconSet;
                     return (
-                      <View key={notif.id} style={localStyles.notifCard}>
+                      <View key={notif.id} style={[localStyles.notifCard, { backgroundColor: theme.background }]}>
                         <View style={[localStyles.iconCircle, { backgroundColor: iconConfig.color + '15' }]}>
                           <IconComponent name={iconConfig.name as any} size={20} color={iconConfig.color} />
                         </View>
                         <View style={{ flex: 1 }}>
                           <View style={localStyles.notifTextRow}>
-                            <Text style={localStyles.notifTitle}>{notif.title}</Text>
+                            <Text style={[localStyles.notifTitle, { color: theme.text }]}>{notif.title}</Text>
                             <Text style={localStyles.notifTime}>{notif.time}</Text>
                           </View>
-                          <Text style={localStyles.notifMessage}>{notif.message}</Text>
+                          <Text style={[localStyles.notifMessage, { color: theme.subtext }]}>{notif.message}</Text>
                         </View>
                       </View>
                     );
@@ -177,63 +241,67 @@ export default function HomeScreen() {
               </ScrollView>
 
               {notifications.length > 0 && (
-                <TouchableOpacity style={localStyles.clearButton} onPress={() => { clearNotifications(); setShowNotifications(false); }}>
-                  <Text style={localStyles.clearButtonText}>Clear All</Text>
+                <TouchableOpacity
+                  style={[localStyles.clearButton, { backgroundColor: theme.border }]}
+                  onPress={() => { clearNotifications(); setShowNotifications(false); }}
+                >
+                  <Text style={[localStyles.clearButtonText, { color: theme.text }]}>Clear All</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
         </Modal>
 
-        <View style={styles.chartCard}>
+        <View style={[styles.chartCard, { backgroundColor: theme.card }]}>
           <View style={styles.chartHeader}>
             <View style={styles.chartTitleContainer}>
-              <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={20} color={PRIMARY_COLOR} />
-              <Text style={styles.chartTitle}>{graphView} Health Status</Text>
+              <MaterialCommunityIcons name="chart-bell-curve-cumulative" size={20} color={theme.primary} />
+              <Text style={[styles.chartTitle, { color: theme.text }]}>{graphView} Health Status</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dropdown}
               onPress={() => setGraphView(graphView === 'Monthly' ? 'Weekly' : 'Monthly')}
             >
-              <Text style={styles.dropdownText}>{graphView}</Text>
-              <Feather name="refresh-cw" size={12} color="#A0A0A0" style={{ marginLeft: 4 }} />
+              <Text style={[styles.dropdownText, { color: theme.subtext }]}>{graphView}</Text>
+              <Feather name="refresh-cw" size={12} color={theme.subtext} style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.chartBars}>
-            {(graphView === 'Monthly' ? (userData?.healthData || defaultMonthlyData) : defaultWeeklyData).map((item: any, index: number) => (
+            {(graphView === 'Monthly' ? (userData?.healthData || defaultMonthlyData) : (userData?.weeklyHealthData || defaultWeeklyData)).map((item: any, index: number) => (
               <View key={index} style={styles.barGroup}>
-                <View style={styles.barTrack}>
-                  <View style={[styles.barFill, { height: `${item.value}%` }]} />
+                <View style={[styles.barTrack, { backgroundColor: theme.iconBg }]}>
+                  <View style={[styles.barFill, { height: `${item.value}%`, backgroundColor: theme.primary }]} />
                 </View>
-                <Text style={styles.barLabel}>{item.month}</Text>
+                <Text style={[styles.barLabel, { color: theme.subtext }]}>{item.month}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your Metrics</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Your Metrics</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Progress')}>
-            <Text style={styles.seeAll}>see all</Text>
+            <Text style={[styles.seeAll, { color: theme.subtext }]}>see all</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.metricsGrid}>
-          <MetricCard 
-            label="Water" 
-            value={metrics.water} 
-            unit="Liters" 
-            icon="water" 
-            color="#2196F3" 
+          <MetricCard
+            label="Water"
+            value={metrics.water}
+            unit="Liters"
+            icon="water"
+            color={darkMode ? theme.primary : "#2196F3"}
+            theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
-          <MetricCard 
-            label="Calories" 
-            value={currentCalories || metrics.calories} 
-            unit="Cal" 
-            icon="flame" 
-            color="#FFC107" 
+          <MetricCard
+            label="Calories"
+            value={currentCalories || metrics.calories}
+            unit="Cal"
+            icon="flame"
+            color={darkMode ? theme.primary : "#FFC107"}
+            theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
           <MetricCard 
@@ -242,6 +310,13 @@ export default function HomeScreen() {
             unit="Bpm" 
             icon="heart" 
             color="#7E57C2" 
+          <MetricCard
+            label="Heart Rate"
+            value={metrics.heartRate}
+            unit="Bpm"
+            icon="heart"
+            color={darkMode ? theme.primary : "#7E57C2"}
+            theme={theme}
             onPress={() => navigation.navigate('Progress')}
           />
           <MetricCard 
@@ -254,11 +329,11 @@ export default function HomeScreen() {
           />
         </View>
 
-        {}
+        { }
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Suggested Workouts</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Suggested Workouts</Text>
           <TouchableOpacity onPress={() => navigation.navigate('AllWorkouts')}>
-            <Text style={styles.seeAll}>see all</Text>
+            <Text style={[styles.seeAll, { color: theme.primary }]}>see all</Text>
           </TouchableOpacity>
         </View>
 
@@ -300,7 +375,6 @@ const localStyles = StyleSheet.create({
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
-    minHeight: height * 0.4,
   },
   modalHeader: {
     flexDirection: 'row',

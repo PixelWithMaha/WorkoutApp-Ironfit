@@ -4,12 +4,15 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import { useStepContext } from '../context/StepContext';
+import { useTheme } from '../context/ThemeContext';
+import { StatusBar } from 'react-native';
 
 export default function WorkoutDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { workout } = route.params;
   const { currentSteps, currentCalories } = useStepContext();
+  const { theme, darkMode } = useTheme();
 
   const [isActive, setIsActive] = useState(true);
   const [seconds, setSeconds] = useState(0);
@@ -19,7 +22,7 @@ export default function WorkoutDetailScreen() {
 
   const workoutSteps = Math.max(0, currentSteps - initialSteps);
   const workoutCalories = Math.max(0, currentCalories - initialCalories);
-  const distance = (workoutSteps * 0.75).toFixed(1); 
+  const distance = (workoutSteps * 0.75).toFixed(1);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -28,7 +31,7 @@ export default function WorkoutDetailScreen() {
     if (isActive) {
       interval = setInterval(() => {
         setSeconds(s => s + 1);
-        
+
         setHeartRate(prev => {
           const change = Math.floor(Math.random() * 5) - 2;
           const newVal = prev + change;
@@ -60,52 +63,54 @@ export default function WorkoutDetailScreen() {
 
   const handleStop = () => {
     setIsActive(false);
-    
     navigation.goBack();
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={darkMode ? 'light-content' : 'dark-content'} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="x" size={24} color={colors.text} />
+          <Feather name="x" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{workout.title} Mode</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{workout.title} Mode</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <View style={styles.mainDisplay}>
-        <Text style={styles.timeLabel}>Workout Duration</Text>
-        <Text style={styles.timeValue}>{formatTime(seconds)}</Text>
-        
-        <View style={styles.heartRateContainer}>
+        <Text style={[styles.timeLabel, { color: theme.subtext }]}>Workout Duration</Text>
+        <Text style={[styles.timeValue, { color: theme.text }]}>{formatTime(seconds)}</Text>
+
+        <View style={[styles.heartRateContainer, { backgroundColor: colors.error + '20' }]}>
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-            <MaterialCommunityIcons name="heart" size={40} color="#FF5252" />
+            <MaterialCommunityIcons name="heart" size={40} color={colors.error} />
           </Animated.View>
-          <Text style={styles.heartRateValue}>{heartRate}</Text>
-          <Text style={styles.heartRateUnit}>BPM</Text>
+          <Text style={[styles.heartRateValue, { color: colors.error }]}>{heartRate}</Text>
+          <Text style={[styles.heartRateUnit, { color: colors.error }]}>BPM</Text>
         </View>
       </View>
 
       <View style={styles.statsGrid}>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Steps</Text>
-          <Text style={styles.statValue}>{workoutSteps}</Text>
+          <Text style={[styles.statLabel, { color: theme.subtext }]}>Steps</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{workoutSteps}</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Calories</Text>
-          <Text style={styles.statValue}>{workoutCalories.toFixed(1)}</Text>
+          <Text style={[styles.statLabel, { color: theme.subtext }]}>Calories</Text>
+          <Text style={[styles.statValue, { color: theme.text }]}>{workoutCalories.toFixed(1)}</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Distance</Text>
-          <Text style={styles.statValue}>{distance}</Text>
-          <Text style={styles.statUnit}>m</Text>
+          <Text style={[styles.statLabel, { color: theme.subtext }]}>Distance</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+            <Text style={[styles.statValue, { color: theme.text }]}>{distance}</Text>
+            <Text style={[styles.statUnit, { color: theme.subtext, marginLeft: 4 }]}>m</Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.controls}>
-        <TouchableOpacity 
-          style={[styles.controlButton, styles.stopButton]} 
+        <TouchableOpacity
+          style={[styles.controlButton, styles.stopButton]}
           onPress={handleStop}
         >
           <Text style={styles.stopButtonText}>End Workout</Text>
@@ -118,7 +123,7 @@ export default function WorkoutDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A', 
+    backgroundColor: '#0F172A',
   },
   header: {
     flexDirection: 'row',
