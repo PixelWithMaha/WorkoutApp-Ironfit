@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import {
   initialize,
   requestPermission,
-  aggregateRecord,
   readRecords
 } from 'react-native-health-connect';
 
@@ -13,9 +12,11 @@ interface StepContextData {
   currentSteps: number;
   currentCalories: number;
   currentDistance: number;
+  currentHeartRate: number;
   notifications: any[];
+  isSyncing: boolean;
   manualSync: () => Promise<void>;
-  syncStepsToFirestore: (steps: number) => Promise<void>;
+  syncStepsToFirestore: (steps: number, calories?: number, heartRate?: number) => Promise<void>;
   clearNotifications: () => void;
 }
 
@@ -25,8 +26,10 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
   const [currentSteps, setCurrentSteps] = useState(0);
   const [currentCalories, setCurrentCalories] = useState(0);
   const [currentDistance, setCurrentDistance] = useState(0);
+  const [currentHeartRate, setCurrentHeartRate] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const stepsRef = useRef(0);
   const lastSyncedSteps = useRef(0);
@@ -36,7 +39,7 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     stepsRef.current = currentSteps;
-    setCurrentCalories(parseFloat((currentSteps * CALORIES_PER_STEP).toFixed(2)));
+    // We only set distance here. Calories will be fetched from watch or calculated as fallback.
     setCurrentDistance(parseFloat((currentSteps * DISTANCE_PER_STEP).toFixed(2)));
   }, [currentSteps]);
 
@@ -55,10 +58,6 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoaded) {
-      setTimeout(() => {
-        addNotification("Morning Motivation", "Believe in yourself and you will be unstoppable. Let's hit your goals!", "motivation");
-      }, 3000);
-
       const checkGoal = () => {
         if (currentSteps >= 10000 && lastSyncedSteps.current < 10000) {
           addNotification("Goal Reached! 🏆", "You've crushed your 10,000 steps goal! Fantastic work.", "goal");
@@ -67,113 +66,167 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
         }
       };
       checkGoal();
-      const waterTimer = setInterval(() => {
-        addNotification("Hydration Reminder", "Time for a glass of water to keep your metabolism high.", "water");
-      }, 2700000);
-
-      return () => clearInterval(waterTimer);
     }
   }, [isLoaded, currentSteps]);
 
   const syncWatchData = async () => {
     if (Platform.OS !== 'android') return;
+    setIsSyncing(true);
 
     try {
       await initialize();
+      await requestPermission([
+        { accessType: 'read', recordType: 'Steps' },
+        { accessType: 'read', recordType: 'ActiveCaloriesBurned' },
+        { accessType: 'read', recordType: 'HeartRate' },
+        { accessType: 'read', recordType: 'Distance' }
+      ]);
 
-      setTimeout(async () => {
-        try {
-          await requestPermission([{ accessType: 'read', recordType: 'Steps' }]);
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const endTime = new Date().toISOString();
+      const startTime = startOfDay.toISOString();
 
-          const startOfDay = new Date();
-          startOfDay.setHours(0, 0, 0, 0);
+      // 1. Fetch Steps
+      const stepsResponse = await readRecords('Steps', {
+        timeRangeFilter: { operator: 'between', startTime, endTime },
+      });
 
-          const response = await readRecords('Steps', {
-            timeRangeFilter: {
-              operator: 'between',
-              startTime: startOfDay.toISOString(),
-              endTime: new Date().toISOString(),
-            },
-          });
+      // 2. Fetch Calories
+      const caloriesResponse = await readRecords('ActiveCaloriesBurned', {
+        timeRangeFilter: { operator: 'between', startTime, endTime },
+      });
 
-          const sourceAudit: { [key: string]: number } = {};
-          response.records.forEach((record: any) => {
-            const origin = record.metadata?.dataOrigin || 'unknown';
-            const count = record.count || 0;
-            sourceAudit[origin] = (sourceAudit[origin] || 0) + count;
-          });
+      // 3. Fetch Heart Rate
+      const heartRateResponse = await readRecords('HeartRate', {
+        timeRangeFilter: { operator: 'between', startTime, endTime },
+      });
 
-          console.log("--- HEALTH CONNECT SOURCE AUDIT ---");
-          console.table(sourceAudit);
+      // 4. Fetch Distance
+      const distanceResponse = await readRecords('Distance', {
+        timeRangeFilter: { operator: 'between', startTime, endTime },
+      });
 
-          const miFitnessSource = 'com.xiaomi.wearable';
-          const miHealthSource = 'com.mi.health';
+      const miFitnessSource = 'com.xiaomi.wearable';
+      const miHealthSource = 'com.mi.health';
 
-          let officialCount = 0;
-          if (sourceAudit[miFitnessSource]) {
-            officialCount = sourceAudit[miFitnessSource];
-          } else if (sourceAudit[miHealthSource]) {
-            officialCount = sourceAudit[miHealthSource];
-          } else {
-            officialCount = Math.max(...Object.values(sourceAudit), 0);
-          }
+      // Process Steps
+      const stepSourceAudit: { [key: string]: number } = {};
+      stepsResponse.records.forEach((record: any) => {
+        const origin = record.metadata?.dataOrigin || 'unknown';
+        stepSourceAudit[origin] = (stepSourceAudit[origin] || 0) + (record.count || 0);
+      });
 
-          console.log(`[Clean Sync] Mi Fitness Total: ${officialCount}`);
+      let officialSteps = stepSourceAudit[miFitnessSource] || stepSourceAudit[miHealthSource] || Math.max(...Object.values(stepSourceAudit), 0);
 
-          if (officialCount < stepsRef.current && officialCount > 0 && stepsRef.current > 0) {
-            const diff = stepsRef.current - officialCount;
-            if (diff > 10) {
-              console.warn(`[StepContext] Inconsistency blocked. Watch: ${officialCount}, Local: ${stepsRef.current}`);
-              addNotification(
-                "Sync Inconsistency",
-                `Your watch reported ${officialCount} steps, which is lower than the local ${stepsRef.current}. Syncing in progress...`,
-                "warning"
-              );
-              return;
-            }
-          }
+      // Process Calories
+      const calorieSourceAudit: { [key: string]: number } = {};
+      caloriesResponse.records.forEach((record: any) => {
+        const origin = record.metadata?.dataOrigin || 'unknown';
+        calorieSourceAudit[origin] = (calorieSourceAudit[origin] || 0) + (record.energy?.kilocalories || 0);
+      });
 
-          if (officialCount > 0) {
-            setCurrentSteps(officialCount);
-            if (officialCount !== lastSyncedSteps.current) {
-              await syncStepsToFirestore(officialCount);
-              lastSyncedSteps.current = officialCount;
-            }
-          }
-        } catch (err) {
-          console.log("[StepContext] Error during raw read:", err);
+      let officialCalories = calorieSourceAudit[miFitnessSource] || calorieSourceAudit[miHealthSource] || Math.max(...Object.values(calorieSourceAudit), 0);
+
+      // If watch reported 0 calories but had steps, use fallback calculation
+      if (officialCalories === 0 && officialSteps > 0) {
+        officialCalories = parseFloat((officialSteps * CALORIES_PER_STEP).toFixed(2));
+      }
+
+      // Process Distance
+      const distanceSourceAudit: { [key: string]: number } = {};
+      distanceResponse.records.forEach((record: any) => {
+        const origin = record.metadata?.dataOrigin || 'unknown';
+        distanceSourceAudit[origin] = (distanceSourceAudit[origin] || 0) + (record.distance?.inKilometers || 0);
+      });
+
+      let officialDistance = distanceSourceAudit[miFitnessSource] || distanceSourceAudit[miHealthSource] || Math.max(...Object.values(distanceSourceAudit), 0);
+
+      if (officialDistance === 0 && officialSteps > 0) {
+        officialDistance = parseFloat((officialSteps * DISTANCE_PER_STEP).toFixed(2));
+      }
+
+      // Process Heart Rate
+      let officialHeartRate = 0;
+      if (heartRateResponse.records.length > 0) {
+        // Find latest sample from preferred sources or just latest overall
+        const miSamples = heartRateResponse.records.filter((r: any) =>
+          r.metadata?.dataOrigin === miFitnessSource || r.metadata?.dataOrigin === miHealthSource
+        );
+        const targetRecords = miSamples.length > 0 ? miSamples : heartRateResponse.records;
+        const latestRecord = targetRecords[targetRecords.length - 1];
+        if (latestRecord.samples && latestRecord.samples.length > 0) {
+          officialHeartRate = latestRecord.samples[latestRecord.samples.length - 1].beatsPerMinute;
         }
-      }, 500);
+      }
+
+      console.log(`[Watch Sync] Steps: ${officialSteps}, Cal: ${officialCalories}, Dist: ${officialDistance}, HR: ${officialHeartRate}`);
+
+      // Update state
+      setCurrentSteps(officialSteps);
+      setCurrentCalories(officialCalories);
+      setCurrentDistance(officialDistance);
+      if (officialHeartRate > 0) setCurrentHeartRate(officialHeartRate);
+
+      // Sync to Firestore if changed
+      if (officialSteps !== lastSyncedSteps.current || officialHeartRate !== currentHeartRate) {
+        await syncStepsToFirestore(officialSteps, officialCalories, officialHeartRate, officialDistance);
+        lastSyncedSteps.current = officialSteps;
+      }
+
     } catch (error) {
-      console.log("[StepContext] Init error:", error);
+      console.log("[StepContext] Sync error:", error);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
-  const syncStepsToFirestore = async (steps: number) => {
-    const userId = auth.currentUser?.uid || 'test_user_123';
-    try {
-      const calories = parseFloat((steps * CALORIES_PER_STEP).toFixed(2));
-      const distance = parseFloat((steps * DISTANCE_PER_STEP).toFixed(2));
-      
-      
-      const docRef = doc(db, `users/${userId}/weeklySummary/currentWeek`);
+  const syncStepsToFirestore = async (steps: number, calories?: number, heartRate?: number, distance?: number) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
 
-      await setDoc(docRef, { steps, calories, distance }, { merge: true });
-      console.log("[StepContext] Firestore Updated:", steps);
+    try {
+      const cal = calories !== undefined ? calories : parseFloat((steps * CALORIES_PER_STEP).toFixed(2));
+      const dist = distance !== undefined ? distance : parseFloat((steps * DISTANCE_PER_STEP).toFixed(2));
+
+      const docRef = doc(db, `users/${userId}/weeklySummary/currentWeek`);
+      await setDoc(docRef, {
+        steps,
+        calories: cal,
+        distance: dist,
+        heartRate: heartRate || currentHeartRate,
+        lastUpdated: new Date().toISOString()
+      }, { merge: true });
+
+      // Also update main user metrics for real-time dashboard
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        "metrics.calories": cal,
+        "metrics.heartRate": heartRate || currentHeartRate,
+        "metrics.steps": steps,
+        "metrics.distance": dist
+      }).catch(() => { }); // Ignore if user doc structure differs
+
     } catch (error) {
       console.error("[StepContext] Firebase Error:", error);
     }
   };
 
   useEffect(() => {
-    const fetchInitialSteps = async () => {
-      const userId = auth.currentUser?.uid || 'test_user_123';
+    const fetchInitialData = async () => {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        setIsLoaded(true);
+        return;
+      }
       try {
         const docRef = doc(db, `users/${userId}/weeklySummary/currentWeek`);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
           setCurrentSteps(data.steps || 0);
+          setCurrentCalories(data.calories || 0);
+          setCurrentHeartRate(data.heartRate || 0);
           lastSyncedSteps.current = data.steps || 0;
         }
       } catch (err) {
@@ -183,13 +236,13 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    fetchInitialSteps();
-  }, []);
+    fetchInitialData();
+  }, [auth.currentUser?.uid]);
 
   useEffect(() => {
     if (isLoaded) {
       syncWatchData();
-      const interval = setInterval(syncWatchData, 120000);
+      const interval = setInterval(syncWatchData, 120000); // Auto sync every 2 mins
       return () => clearInterval(interval);
     }
   }, [isLoaded]);
@@ -199,7 +252,9 @@ export function StepProvider({ children }: { children: React.ReactNode }) {
       currentSteps,
       currentCalories,
       currentDistance,
+      currentHeartRate,
       notifications,
+      isSyncing,
       manualSync: syncWatchData,
       syncStepsToFirestore,
       clearNotifications

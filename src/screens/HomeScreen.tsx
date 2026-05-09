@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View, SafeAreaView, ActivityIndicator, Modal, StyleSheet, Dimensions, RefreshControl } from 'react-native';
 import { MaterialCommunityIcons, Feather, Ionicons } from '@expo/vector-icons';
 import { db, auth } from '../config/firebase';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
@@ -31,46 +31,60 @@ export default function HomeScreen() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [graphView, setGraphView] = useState<'Monthly' | 'Weekly'>('Monthly');
   const navigation = useNavigation<any>();
-  const { currentSteps, currentCalories, notifications, clearNotifications } = useStepContext();
+  const { 
+    currentSteps, 
+    currentCalories, 
+    currentDistance,
+    currentHeartRate, 
+    notifications, 
+    clearNotifications,
+    isSyncing,
+    manualSync 
+  } = useStepContext();
+
+  const fetchData = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (userId) {
+        const userDocRef = doc(db, 'users', userId);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          setUserData(userDocSnap.data());
+        }
+      } else {
+        setUserData({
+          name: 'Sarah',
+          metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
+          healthData: defaultMonthlyData,
+        });
+      }
+
+      const workoutsCollection = collection(db, 'workouts');
+      const workoutsSnapshot = await getDocs(workoutsCollection);
+      const workoutsList = workoutsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (workoutsList.length > 0) {
+        setWorkouts(workoutsList);
+      } else {
+        setWorkouts([
+          { id: '1', title: "Running", desc: "Burn fat and boost\nendurance with a steady run.", isLight: false },
+          { id: '2', title: "Biking", desc: "Strengthen your legs and\nimprove stamina, indoors or out.", isLight: true }
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching data: ", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userId = auth.currentUser?.uid;
-        if (userId) {
-          const userDocRef = doc(db, 'users', userId);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            setUserData(userDocSnap.data());
-          }
-        } else {
-          setUserData({
-            name: 'Sarah',
-            metrics: { water: 2.9, calories: 2.9, heartRate: 76 },
-            healthData: defaultMonthlyData,
-          });
-        }
-
-        const workoutsCollection = collection(db, 'workouts');
-        const workoutsSnapshot = await getDocs(workoutsCollection);
-        const workoutsList = workoutsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (workoutsList.length > 0) {
-          setWorkouts(workoutsList);
-        } else {
-          setWorkouts([
-            { id: '1', title: "Running", desc: "Burn fat and boost\nendurance with a steady run.", isLight: false },
-            { id: '2', title: "Biking", desc: "Strengthen your legs and\nimprove stamina, indoors or out.", isLight: true }
-          ]);
-        }
-      } catch (error) {
-        console.error("Error fetching data: ", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
   }, []);
+
+  const onRefresh = async () => {
+    await manualSync();
+    await fetchData();
+  };
 
   const getNotifIcon = (type: string) => {
     switch (type) {
@@ -95,7 +109,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={isSyncing} onRefresh={onRefresh} tintColor={PRIMARY_COLOR} />
+        }
+      >
 
         {}
         <View style={styles.header}>
@@ -218,10 +238,18 @@ export default function HomeScreen() {
           />
           <MetricCard 
             label="Heart Rate" 
-            value={metrics.heartRate} 
+            value={currentHeartRate || metrics.heartRate} 
             unit="Bpm" 
             icon="heart" 
             color="#7E57C2" 
+            onPress={() => navigation.navigate('Progress')}
+          />
+          <MetricCard 
+            label="Distance" 
+            value={currentDistance || metrics.distance || 0} 
+            unit="Km" 
+            icon="map-outline" 
+            color="#10B981" 
             onPress={() => navigation.navigate('Progress')}
           />
         </View>
