@@ -136,14 +136,16 @@ export const styles = StyleSheet.create({
   },
   metricsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 24,
   },
   metricCard: {
-    width: (width - 64) / 3,
+    width: (width - 60) / 2,
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 12,
+    padding: 16,
+    marginBottom: 12,
   },
   metricCardTop: {
     flexDirection: 'row',

@@ -24,7 +24,10 @@
       "minSdkVersion": 26,
       "permissions": [
         "ACTIVITY_RECOGNITION",
-        "android.permission.health.READ_STEPS"
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.READ_DISTANCE"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -41,7 +44,10 @@
         "react-native-health-connect",
         {
           "permissions": [
-            "READ_STEPS"
+            "READ_STEPS",
+            "READ_ACTIVE_CALORIES_BURNED",
+            "READ_HEART_RATE",
+            "READ_DISTANCE"
           ]
         }
       ]
