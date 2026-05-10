@@ -8,7 +8,7 @@ Hi! This is my project for my mobile development coursework. It's a fitness trac
 - **AI Coach:** I integrated an AI health coach using `groq-sdk` and `@google/generative-ai` to give you personalized workout advice based on your daily stats! It's super cool.
 - **History & Progress:** Uses `react-native-chart-kit` to show nice graphs of your workout history and step count over the week.
 - **Data Saving:** All the user profile data and workout history is saved in Firebase Firestore so you don't lose anything if you close the app.
-- **Cool UI:** Has a neat onboarding flow using `rn-tourguide` and some cool image-based activity cards in the history view (instead of just generic icons).
+
 
 ## Tech Stack
 - **Frontend:** React Native / Expo
@@ -39,7 +39,7 @@ If you want to run this locally, follow these steps:
    npx expo run:android
    ```
 
-## Things I struggled with (Notes for grading/review)
+## Things I struggled with 
 - Getting `react-native-health-connect` to initialize without crashing was honestly really hard. I had to configure specific permissions in `app.json` (`ACTIVITY_RECOGNITION`, etc.) and make sure it initialized correctly on Android before fetching data.
 - The AI coach originally just spit out raw markdown text which looked pretty bad. I spent some time fixing it by using `react-native-markdown-display` to format the text into nice UI cards.
 - I had some annoying issues with the Metro bundler crashing because of TypeScript identifier collisions and legacy styles, but I refactored the code to fix them.
